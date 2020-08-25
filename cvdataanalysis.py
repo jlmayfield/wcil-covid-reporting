@@ -103,4 +103,38 @@ def which_phase(d):
 # this week is week k, week d_zero is the first day of the dataset    
 def which_week(d,d_zero):
     return str( (d - d_zero).days // 7 ) 
+
+def demographic_totals(demo_daily,start=7,end=0):
+    """
+    Total new cases by demographic categories. 
+
+    Parameters
+    ----------
+    demo_daily : DataFrame
+        Daily Demographic data on new cases
+    start : int, optional
+        How many days ago to start the time window. The default is 7.
+    end : int, optional
+        How many days ago to end the time window. The default is 0.
+
+    Returns
+    -------
+    totals : DataFrame
+        totals for the specified time window
+
+    """
+    s_idx = len(demo_daily)-start
+    e_idx = len(demo_daily)-end
+    totals_men = demo_daily.iloc[s_idx:e_idx,:]['Male'].sum()
+    totals_women = demo_daily.iloc[s_idx:e_idx,:]['Female'].sum()
+    totals = pd.DataFrame([],columns=['age','sex','cases'])
+    for a in totals_men.index:
+        totals = totals.append(pd.Series([a,'Male',totals_men[a]],
+                                         index=['age','sex','cases']),
+                               ignore_index=True)
+    for a in totals_women.index:
+        totals = totals.append(pd.Series([a,'Female',totals_women[a]],
+                                         index=['age','sex','cases']),
+                               ignore_index=True)
+    return totals
     

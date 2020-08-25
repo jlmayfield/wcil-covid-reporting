@@ -13,7 +13,6 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.offline import plot
-from plotly.subplots import make_subplots
 
 from urllib.request import urlopen
 import json
@@ -89,11 +88,8 @@ tests_wchd['DayOfWeek'] = tests_wchd.index.map(lambda d: d.dayofweek)
 demo_wchd = pd.read_csv('WCHD_Demographics.csv',
                        skiprows=[2],
                        header=[0,1],index_col=0,
-                       parse_dates=True).fillna(0).iloc[:,0:13]
+                       parse_dates=True).fillna(0).iloc[:,0:12]
 
-sexes = list(demo_wchd.columns.get_level_values(level=0).unique())
-ages = list(demo_wchd.columns.get_level_values(level=1).unique())
-dates = list(demo_wchd.index)
 
 #%%
 
@@ -124,93 +120,27 @@ daily_max =  warren_daily.iloc[:,3:].max().max()
 #%%
 
 # Daily Pos Rate with Avg and Regional Avg
-
-threeweeks = tests_wchd.iloc[-21:,:]
-regrate =  threeweeks[ threeweeks['Region 2 pos rate'] > 0 ]
-
-fig = go.Figure()
-fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['% New Positive']),
-                     name='Postive Rate',
-                     hovertemplate='% Positive: %{y:.2%}<extra></extra>'))
-fig.add_trace(go.Scatter(x=list(threeweeks.index),y=list(threeweeks['7 Day Avg PosRate']),                         
-                         mode="lines",name='Seven Day Average',
-                         hovertemplate='Current Avg: %{y:.2%}<extra></extra>'))
-fig.add_trace(go.Scatter(x=list(regrate.index),y=list(regrate['Region 2 pos rate']),                         
-                         mode="lines",name='Region 2 Seven Day Average',
-                         hovertemplate='Regional Avg: %{y:.2%}<extra></extra>'))
-fig.update_layout(title='Postive Test Rate for COVID-19 in Warren County, IL<br>' + 
-                  str(threeweeks.index[0])[:10] + ' to ' + str(threeweeks.index[-1])[:10],
-                   xaxis = dict(
-                       tickmode = 'array',
-                       tickvals = list(threeweeks.index[[0,6]])+list(threeweeks.index[-7:]),
-                       tickangle=45),                  
-                   yaxis = dict(
-                       range=(0,1),
-                       tickmode = 'linear',
-                       tick0=0, dtick=0.1,
-                       tickformat = '.0%'),
-                   colorway=px.colors.qualitative.Set1,
-                   xaxis_showgrid=False, 
-                   yaxis_showgrid=False,
-                   legend=dict(
-                       orientation="h",
-                       yanchor="bottom",
-                       y=1.02,
-                       xanchor="right",
-                       x=1))
-                   
-fig.update_layout(hovermode="x unified")
+fig = cvdv.wcposratereport(tests_wchd)
 
 poscases_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('WC-PosRate-ThreeWeek-DIV.txt','w') as f:
+with open('graphics/WC-PosRate-ThreeWeek-DIV.txt','w') as f:
     f.write(poscases_div)
     f.close()
-plot(fig,filename='WC-PosRate-ThreeWeek.html')
+plot(fig,filename='graphics/WC-PosRate-ThreeWeek.html')
 
 
 
 #%%
 
 # Daily Test Results
-max_tests = tests_wchd['New Tests'].max()
+fig = cvdv.wcdailytestsreport(tests_wchd)
 
-fig = go.Figure()
-fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['New Positive']),
-                     name='Positive Tests',
-                     hovertemplate = 'Positive: %{y}<extra></extra>'))
-fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['New Negative']),
-                     name='Negative Tests',
-                     hovertemplate = 'Negative: %{y}<extra></extra>'))
-fig.update_layout(title='Daily Test Results for COVID-19 in Warren County, IL<br>' +
-                  str(threeweeks.index[0])[:10] + ' to ' + str(threeweeks.index[-1])[:10],
-                   xaxis = dict(
-                       tickmode = 'array',
-                       tickvals = list(threeweeks.index[[0,6]]) + list(threeweeks.index[-7:]),
-                       tickangle=45),               
-                   yaxis = dict(
-                       tickmode = 'linear',
-                       tick0=0, dtick=10,                       
-                       range=(0,max_tests+2),
-                       title = 'Tests'                       
-                       ),
-                   colorway=px.colors.qualitative.Set1,
-                   xaxis_showgrid=False, 
-                   yaxis_showgrid=False,
-                   barmode='stack',
-                   legend=dict(
-                       orientation="h",
-                       yanchor="bottom",
-                       y=1.02,
-                       xanchor="right",
-                       x=1))
-                   
-fig.update_layout(hovermode="x unified")
 
 tests_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('WC-Tests-ThreeWeeks-DIV.txt','w') as f:
+with open('graphics/WC-Tests-ThreeWeeks-DIV.txt','w') as f:
     f.write(tests_div)
     f.close()
-plot(fig,filename='WC-Tests-ThreeWeeks.html')
+plot(fig,filename='graphics/WC-Tests-ThreeWeeks.html')
 
 
 
@@ -218,140 +148,27 @@ plot(fig,filename='WC-Tests-ThreeWeeks.html')
 
 # Case Status Stacked Bars
 
-fig = go.Figure()
-fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['Active Cases']),
-                     name='Active Cases',
-                     hovertemplate = 'Active: %{y}<extra></extra>'))
-fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['Recoveries']),
-                     name='Symptoms Resolved',
-                     hovertemplate = 'Resolved: %{y}<extra></extra>'))
-fig.update_layout(title='Status of COVID-19 Cases in Warren County, IL<br>' +
-                  str(threeweeks.index[0])[:10] + ' to ' + str(threeweeks.index[-1])[:10],
-                   xaxis = dict(
-                       tickmode = 'array',
-                       tickvals = list(threeweeks.index[[0,6]]) + list(threeweeks.index[-7:]),
-                       tickangle=45),                  
-                   yaxis = dict(
-                       tickmode = 'linear',
-                       tick0=0, dtick=10,
-                       title = 'Cases'
-                       ),
-                   colorway=px.colors.qualitative.Set1,
-                   xaxis_showgrid=False, 
-                   yaxis_showgrid=False,
-                   barmode='stack',
-                   legend=dict(
-                       orientation="h",
-                       yanchor="bottom",
-                       y=1.02,
-                       xanchor="right",
-                       x=1),
-                   hovermode="x unified"
-                   )
+fig = cvdv.wccasestatusreport(tests_wchd)
                    
 status_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('WC-CaseStatus-Threeweeks-DIV.txt','w') as f:
+with open('graphics/WC-CaseStatus-Threeweeks-DIV.txt','w') as f:
     f.write(status_div)
     f.close()
-plot(fig,filename='WC-CaseStatus-Threeweeks.html')
+plot(fig,filename='graphics/WC-CaseStatus-Threeweeks.html')
 
 
 #%%
 
-
-totals_men = demo_wchd.iloc[-21:-7,:]['Male'].sum()
-totals_women = demo_wchd.iloc[-21:-7,:]['Female'].sum()
-
-totals = pd.DataFrame([],columns=['age','sex','cases'])
-for a in totals_men.index:
-    totals = totals.append(pd.Series([a,'Male',totals_men[a]],
-                                     index=['age','sex','cases']),
-                           ignore_index=True)
-for a in totals_women.index:
-    totals = totals.append(pd.Series([a,'Female',totals_women[a]],
-                                     index=['age','sex','cases']),
-                           ignore_index=True)
-
-totals_prev2 = totals
-
-totals_men = demo_wchd.iloc[-7:,:]['Male'].sum()
-totals_women = demo_wchd.iloc[-7:,:]['Female'].sum()
-
-totals = pd.DataFrame([],columns=['age','sex','cases'])
-for a in totals_men.index:
-    totals = totals.append(pd.Series([a,'Male',totals_men[a]],
-                                     index=['age','sex','cases']),
-                           ignore_index=True)
-for a in totals_women.index:
-    totals = totals.append(pd.Series([a,'Female',totals_women[a]],
-                                     index=['age','sex','cases']),
-                           ignore_index=True)
-
-totals_thisweek = totals
     
-#%%
-
 # Demographics Stacked Bars
+fig = cvdv.wcdemoreport(demo_wchd)
 
-wk2start = str(threeweeks.index[0])[:10] 
-wk2end = str(threeweeks.index[13])[:10] 
-twstart = str(threeweeks.index[14])[:10] 
-twend = str(threeweeks.index[-1])[:10] 
-fig = make_subplots(rows=1,cols=2,
-                    subplot_titles=(wk2start + ' to ' + wk2end,
-                                    twstart + ' to ' + twend),
-                    shared_yaxes=True)
-fig.add_trace(go.Bar(x=totals_prev2[totals_prev2['sex']=='Male']['age'],
-                     y=totals_prev2[totals_prev2['sex']=='Male']['cases'],
-                     name = 'Male',
-                     marker_color=(px.colors.qualitative.Vivid[0])),
-              row=1,col=1)
-fig.add_trace(go.Bar(x=totals_prev2[totals_prev2['sex']=='Female']['age'],
-                     y=totals_prev2[totals_prev2['sex']=='Female']['cases'],
-                     name = 'Female',
-                     marker_color=(px.colors.qualitative.Vivid[1])),
-              row=1,col=1)
-fig.add_trace(go.Bar(x=totals_thisweek[totals_thisweek['sex']=='Male']['age'],
-                     y=totals_thisweek[totals_thisweek['sex']=='Male']['cases'],
-                     name = 'Male',
-                     marker_color=(px.colors.qualitative.Vivid[0]),
-                     showlegend=False),
-              row=1,col=2)
-fig.add_trace(go.Bar(x=totals_thisweek[totals_thisweek['sex']=='Female']['age'],
-                     y=totals_thisweek[totals_thisweek['sex']=='Female']['cases'],
-                     name = 'Female',
-                     marker_color=(px.colors.qualitative.Vivid[1]),
-                     showlegend=False),
-              row=1,col=2)
-fig.update_xaxes(showgrid=False,row=1,col=1)     
-fig.update_xaxes(showgrid=False,row=1,col=2)
-fig.update_yaxes(showgrid=False,row=1,col=1)     
-fig.update_yaxes(showgrid=False,row=1,col=2)
-fig.update_layout(title='COVID-19 Case Demographics in Warren County, IL<br>' +
-                  str(threeweeks.index[0])[:10] + ' to ' + str(threeweeks.index[-1])[:10],                                      
-                   barmode='stack',
-                   legend=dict(
-                       #orientation="h",
-                       yanchor="bottom",
-                       y=1.02,
-                       xanchor="right",
-                       x=1),
-                   hovermode="x unified",
-                   yaxis = dict(
-                       tickmode = 'linear',
-                       tick0 = 0,
-                       dtick = 5,
-                       title = "Individuals",
-                       range=(0,max(totals_prev2.groupby('age').sum().max()[0],
-                                    totals_thisweek.groupby('age').sum().max()[0])+2)    
-                       )
-                   )
 
 demo_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('WC-Demographics-Threeweeks-DIV.txt','w') as f:
+with open('graphics/WC-Demographics-Threeweeks-DIV.txt','w') as f:
     f.write(demo_div)
     f.close()
-plot(fig,filename='WC-Demographics-Threeweeks.html')
+plot(fig,filename='graphics/WC-Demographics-Threeweeks.html')
 
 
 #%%
@@ -378,10 +195,10 @@ fig.update_layout(mapbox_style='streets', mapbox_accesstoken=MB_TOKEN,
                   aoi.columns[-21] + ' to ' + aoi.columns[-1])
 
 totmap_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('Region-Map-Total-Threeweeks-DIV.txt','w') as f:
+with open('graphics/Region-Map-Total-Threeweeks-DIV.txt','w') as f:
     f.write(totmap_div)
     f.close()
-plot(fig,filename='Region-Map-Threeweeks.html')
+plot(fig,filename='graphics/Region-Map-Threeweeks.html')
 
 #%%
 
@@ -438,10 +255,10 @@ fig.update_layout(title='Daily Confirmed Cases of COVID-19 in Region<br>'+
 fig.update_layout(hovermode="x unified")
 
 newcases_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('Region-NewCases-ThreeWeeks-DIV.txt','w') as f:
+with open('graphics/Region-NewCases-ThreeWeeks-DIV.txt','w') as f:
     f.write(newcases_div)
     f.close()
-plot(fig,filename='Region-NewCases-ThreeWeeks.html')
+plot(fig,filename='graphics/Region-NewCases-ThreeWeeks.html')
 
 #%%
 
@@ -449,30 +266,42 @@ plot(fig,filename='Region-NewCases-ThreeWeeks.html')
 
 # map with total cases as of 7/31
 d = cvdv.prep_for_animate(cvda.to_for100k(aoi.iloc[:,[0,1,2,-1]],population))
-d_off = cvdv.prep_for_animate(cvda.to_for100k(aoi.iloc[:,[0,1,2,-22]],population))
+# stuff to take out
+d_off = cvdv.prep_for_animate(cvda.to_for100k(aoi.iloc[:,[0,1,2,-8]],population))
 cnames = cvdv.get_fips_dict(aoi)
 d['County'] = d['fips'].apply( lambda f : cnames[f] )
 d['Cases'] = d['Cases'] - d_off['Cases']
+
+# IL gets twitchy at 50+ cases per week
+# Harvard Groups uses [0,1),[1,10),[10,25),25+ 
+# So Let's just go yellow at the IL mark and Red at the Harvard High mark. 
+yl_cutoff = 50 / d['Cases'].max() 
+rd_cutoff = 175 / d['Cases'].max()
 
 
 fig = go.Figure(go.Choroplethmapbox(geojson=counties, 
                                     locations= d['fips'],
                                     z = d['Cases'],
-                                    text = d['County'],
-                                    colorscale="rdylgn_r",
+                                    text = d['County'],                                    
                                     marker_opacity = 0.2,
-                                    hovertemplate='%{text}<br>Total Cases per 100000: %{z}<extra></extra>'))
+                                    hovertemplate='%{text}<br>Total Cases per 100000: %{z}<extra></extra>',
+                                    colorscale = [
+                                        [0,'green'],
+                                        [yl_cutoff,'yellow'],
+                                        [rd_cutoff,'red'],
+                                        [1,'darkred']])
+                )
 fig.update_layout(mapbox_style='streets', mapbox_accesstoken=MB_TOKEN,                  
                   mapbox_zoom = 6,
                   mapbox_center = {'lon':-89.8130, 'lat': 41.0796},
                   title="Total Confirmed COVID-19 Cases per 100,000 people for<br>"+
-                  aoi.columns[-21] + ' to ' + aoi.columns[-1])
+                  aoi.columns[-7] + ' to ' + aoi.columns[-1])
 
 totmap_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('Region-Map-NormedTotal-ThreeWeeks-DIV.txt','w') as f:
+with open('graphics/Region-Map-NormedTotal-OneWeek-DIV.txt','w') as f:
     f.write(totmap_div)
     f.close()
-plot(fig,filename='Region-Map-NormedTotal-ThreeWeeks.html')
+plot(fig,filename='graphics/Region-Map-NormedTotal-OneWeeks.html')
 
 #%%
 
@@ -482,10 +311,10 @@ allofit = cvdp.prune_data(aoi_daily)
 fig  = cvdv.animated_bars(allofit,21,
                           "Daily COVID-19 Cases by County")
 dailybars_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('Region-Bars-ThreeWeeks-DIV.txt','w') as f:
+with open('graphics/Region-Bars-ThreeWeeks-DIV.txt','w') as f:
     f.write(dailybars_div)
     f.close()
-plot(fig,filename='Region-Bars-ThreeWeeks.html')
+plot(fig,filename='graphics/Region-Bars-ThreeWeeks.html')
 
 #%%
 
@@ -495,10 +324,10 @@ allofit = cvdp.prune_data(aoi_normed_daily)
 fig  = cvdv.animated_bars(allofit,21,
                           "Daily COVID-19 Cases per 100,000 by County")
 dailybars_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('Region-BarsNormed-ThreeWeeks-DIV.txt','w') as f:
+with open('graphics/Region-BarsNormed-ThreeWeeks-DIV.txt','w') as f:
     f.write(dailybars_div)
     f.close()
-plot(fig,filename='Region-BarsNormed-ThreeWeeks.html')
+plot(fig,filename='graphics/Region-BarsNormed-ThreeWeeks.html')
 
 #%%
 
@@ -508,14 +337,8 @@ allofit = cvdp.prune_data(aoi_nd_7day)
 fig  = cvdv.animated_bars(allofit,21,
                           "Seven Day Average of COVID-19 Cases per 100,000 by County")
 dailybars_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('Region-BarsNormed7Day-ThreeWeeks-DIV.txt','w') as f:
+with open('graphics/Region-BarsNormed7Day-ThreeWeeks-DIV.txt','w') as f:
     f.write(dailybars_div)
     f.close()
-plot(fig,filename='Region-BarsNormed7Day-THreeWeeks.html')
+plot(fig,filename='graphics/Region-BarsNormed7Day-THreeWeeks.html')
 
-
-#%%
-
-days = 21 #len(allofit.columns)-2
-fig = cvdv.animate_per100k(allofit,days,'Seven Day Average New Cases per 100000')
-plot(fig)
