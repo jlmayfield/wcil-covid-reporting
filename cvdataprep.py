@@ -7,9 +7,17 @@ Created on Thu Jul  9 08:49:09 2020
 """
 
 import pandas as pd
+import numpy as np
+
+def usafactsprep(casedata):
+    dates = np.array(casedata.columns[3:].map(pd.to_datetime))
+    states = casedata['State'].unique()
+    cfips = np.array(casedata.index)
+    midx = pd.MultiIndex.from_product([dates,cfips,states],
+                                      names=['date','countyFIPS','State'])
 
 def datefix(casedata):
-    """
+    """))
     Rewrite date strings to pandas standard and reorganize columns to be in
     chronological order.
 

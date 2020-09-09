@@ -57,35 +57,16 @@ cases = pd.read_csv('covid_confirmed_usafacts.csv',
                                 'County Name':str, 'State':str},
                          index_col = 'countyFIPS')
 
-
-tests_wchd = pd.read_csv('WCHD_Reports.csv',
+reports_wchd = pd.read_csv('WCHD_Reports.csv',
                          header=[0],index_col=0,
                          parse_dates=True).fillna(0)
 
-dates = list(tests_wchd.index)
+demo_wchd = pd.read_csv('WCHD_Case_Demographics.csv',
+                       skiprows=[2],
+                       header=[0,1],index_col=0,
+                       parse_dates=True).fillna(0).iloc[:,0:12]
 
-
-def which_phase(d):
-    LAST_PHASE2 = pd.to_datetime('05-28-2020')
-    LAST_PHASE3 = pd.to_datetime('06-25-2020')
-    if d <= LAST_PHASE2:
-        return 'Phase 2'
-    elif d <= LAST_PHASE3:
-        return 'Phase 3'
-    else:
-        return 'Phase 4'
-    
-   
-# tag recovery phase
-tests_wchd['Phase'] = tests_wchd.index.map(which_phase)
-# tag for day of the week
-DAY_OF_WEEK = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',4:'Friday',
-               5:'Saturday',6:'Sunday'}
-tests_wchd['DayOfWeek'] = tests_wchd.index.map(lambda d: d.dayofweek)
-
-#%% 
-
-demo_wchd = pd.read_csv('WCHD_Demographics.csv',
+death_wchd = pd.read_csv('WCHD_Death_Demographics.csv',
                        skiprows=[2],
                        header=[0,1],index_col=0,
                        parse_dates=True).fillna(0).iloc[:,0:12]
@@ -93,29 +74,8 @@ demo_wchd = pd.read_csv('WCHD_Demographics.csv',
 
 #%%
 
-cases = cvdp.datefix(cases)
-cases = cvdp.prune_data(cases)
-
-
-#%%
-
-aoi_fips = region2 + ia_select
-aoi = cvdp.prune_data(cases.loc[aoi_fips])
-
-aoi_daily = cvda.to_new_daily(aoi)
-aoi_7day = cvda.to_sevenDayAvg(aoi_daily)
-
-aoi_normed_daily = cvda.to_for100k(aoi_daily,population)
-aoi_nd_7day = cvda.to_sevenDayAvg(aoi_normed_daily)
-
-
-#%%
-
-warren_7day = cvdp.prune_data(aoi_7day.loc[warren])
-warren_daily = cvdp.prune_data(aoi_daily.loc[warren])
-
-daily_max =  warren_daily.iloc[:,3:].max().max()
-
+tests_wchd = cvda.expandWCHDData(reports_wchd)
+tests_wchd.to_csv('WCHD_Expanded_Reports.csv')
 
 #%%
 
@@ -159,7 +119,6 @@ plot(fig,filename='graphics/WC-CaseStatus-Threeweeks.html')
 
 #%%
 
-    
 # Demographics Stacked Bars
 fig = cvdv.wcdemoreport(demo_wchd)
 
@@ -173,9 +132,34 @@ plot(fig,filename='graphics/WC-Demographics-Threeweeks.html')
 
 #%%
 
+cases = cvdp.datefix(cases)
+cases = cvdp.prune_data(cases)
+
+
+#%%
+
+aoi_fips = region2 + ia_select
+aoi = cvdp.prune_data(cases.loc[aoi_fips])
+
+aoi_daily = cvda.to_new_daily(aoi)
+aoi_7day = cvda.to_sevenDayAvg(aoi_daily)
+
+aoi_normed_daily = cvda.to_for100k(aoi_daily,population)
+aoi_nd_7day = cvda.to_sevenDayAvg(aoi_normed_daily)
+
+
+#%%
+
+warren_7day = cvdp.prune_data(aoi_7day.loc[warren])
+warren_daily = cvdp.prune_data(aoi_daily.loc[warren])
+
+daily_max =  warren_daily.iloc[:,3:].max().max()
+
+
+#%%
 
 d = cvdv.prep_for_animate(aoi.iloc[:,[0,1,2,-1]])
-d_off = cvdv.prep_for_animate(aoi.iloc[:,[0,1,2,-22]])
+d_off = cvdv.prep_for_animate(aoi.iloc[:,[0,1,2,-8]])
 cnames = cvdv.get_fips_dict(aoi)
 d['County'] = d['fips'].apply( lambda f : cnames[f] )
 d['Cases'] = d['Cases'] - d_off['Cases']
@@ -192,13 +176,13 @@ fig.update_layout(mapbox_style='streets', mapbox_accesstoken=MB_TOKEN,
                   mapbox_zoom = 6,
                   mapbox_center = {'lon':-89.8130, 'lat': 41.0796},
                   title="Total Confirmed COVID-19 Cases for <br>" +
-                  aoi.columns[-21] + ' to ' + aoi.columns[-1])
+                  aoi.columns[-7] + ' to ' + aoi.columns[-1])
 
 totmap_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/Region-Map-Total-Threeweeks-DIV.txt','w') as f:
+with open('graphics/Region-Map-Total-OneWeek-DIV.txt','w') as f:
     f.write(totmap_div)
     f.close()
-plot(fig,filename='graphics/Region-Map-Threeweeks.html')
+plot(fig,filename='graphics/Region-Map-OneWeek.html')
 
 #%%
 

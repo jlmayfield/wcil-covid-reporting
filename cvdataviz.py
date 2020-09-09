@@ -304,17 +304,25 @@ def wcposratereport(wchd_data):
 
     '''    
     threeweeks = wchd_data.iloc[-21:,:]
-    regrate =  threeweeks[ threeweeks['Region 2 pos rate'] > 0 ]
+    regrate =  threeweeks[ threeweeks['Region 2 Pos Rate'] > 0 ]    
+    colors = ["lightcoral" if p < 0.08 else "crimson"
+              for p in threeweeks['% New Positive']]
     fig = go.Figure()
-    fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['% New Positive']),
+    fig.add_trace(go.Bar(x = list(threeweeks.index),
+                         y = list(threeweeks['% New Positive']),
                          name='Postive Rate',
+                         marker_color=colors,showlegend=False,
                          hovertemplate='% Positive: %{y:.2%}<extra></extra>'))
-    fig.add_trace(go.Scatter(x=list(threeweeks.index),y=list(threeweeks['7 Day Avg PosRate']),                         
+    fig.add_trace(go.Scatter(x=list(threeweeks.index),
+                             y=list(threeweeks['7 Day Avg % New Positive']),                         
                              mode="lines",name='Seven Day Average',
+                             line=dict(color='gold'),
                              hovertemplate='Current Avg: %{y:.2%}<extra></extra>'))
-    fig.add_trace(go.Scatter(x=list(regrate.index),y=list(regrate['Region 2 pos rate']),                         
+    fig.add_trace(go.Scatter(x=list(regrate.index),
+                             y=list(regrate['Region 2 Pos Rate']),                         
                              mode="lines",name='Region 2 Seven Day Average',
-                             hovertemplate='Regional Avg: %{y:.2%}<extra></extra>'))
+                             hovertemplate='Regional Avg: %{y:.2%}<extra></extra>',
+                             line=dict(dash='dash',color='royalblue')))
     fig.update_layout(title='Postive Test Rate for COVID-19 in Warren County, IL<br>' + 
                       str(threeweeks.index[0])[:10] + ' to ' + str(threeweeks.index[-1])[:10],
                        xaxis = dict(
@@ -357,7 +365,7 @@ def wcdailytestsreport(wchd_data):
 
     '''
     threeweeks = wchd_data.iloc[-21:,:]
-    max_tests = wchd_data['New Tests'].max()
+    max_tests = threeweeks['New Tests'].max()
     fig = go.Figure()
     fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['New Positive']),
                          name='Positive Tests',
@@ -374,7 +382,7 @@ def wcdailytestsreport(wchd_data):
                        yaxis = dict(
                            tickmode = 'linear',
                            tick0=0, dtick=10,                       
-                           range=(0,max_tests+2),
+                           range=(0,max(80,max_tests+2)),
                            title = 'Tests'                       
                            ),
                        colorway=px.colors.qualitative.Set1,
@@ -397,11 +405,14 @@ def wccasestatusreport(wchd_data):
     threeweeks = wchd_data.iloc[-21:,:]
     fig = go.Figure()
     fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['Active Cases']),
-                         name='Active Cases',
+                         name='Active Cases',marker_color=px.colors.qualitative.Set1[0],
                          hovertemplate = 'Active: %{y}<extra></extra>'))
-    fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['Recoveries']),
-                         name='Symptoms Resolved',
-                         hovertemplate = 'Resolved: %{y}<extra></extra>'))
+    fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['Total Deaths']),
+                         name='Deaths',marker_color=px.colors.qualitative.Set1[3],
+                         hovertemplate = 'Deaths: %{y}<extra></extra>'))
+    fig.add_trace(go.Bar(x = list(threeweeks.index),y = list(threeweeks['Total Recovered']),
+                         name='Symptoms Resolved',marker_color=px.colors.qualitative.Set1[1],
+                         hovertemplate = 'Resolved: %{y}<extra></extra>'))    
     fig.update_layout(title='Status of COVID-19 Cases in Warren County, IL<br>' +
                       str(threeweeks.index[0])[:10] + ' to ' + str(threeweeks.index[-1])[:10],
                        xaxis = dict(
@@ -413,7 +424,7 @@ def wccasestatusreport(wchd_data):
                            tick0=0, dtick=10,
                            title = 'Cases'
                            ),
-                       colorway=px.colors.qualitative.Set1,
+                       #colorway=px.colors.qualitative.Set1,
                        xaxis_showgrid=False, 
                        yaxis_showgrid=False,
                        barmode='stack',
@@ -479,7 +490,7 @@ def wcdemoreport(wchd_demo_data):
                        yaxis = dict(
                            tickmode = 'linear',
                            tick0 = 0,
-                           dtick = 5,
+                           dtick = 2,
                            title = "Individuals",
                            range=(0,max(totals_prev2.groupby('age').sum().max()[0],
                                         totals_thisweek.groupby('age').sum().max()[0])+2)    
