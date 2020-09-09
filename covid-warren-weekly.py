@@ -29,6 +29,7 @@ import cvdataviz as cvdv
 
 #%%
 
+# 17187,17 <-- Warren County, IL
 warren = [17187]
 neighbors = [17095, 17071, 17109, 17057, 17131]
 il_select = [17113, 17107, 17167, 17195, 17031]
@@ -74,8 +75,11 @@ death_wchd = pd.read_csv('WCHD_Death_Demographics.csv',
 
 #%%
 
-tests_wchd = cvda.expandWCHDData(reports_wchd)
-tests_wchd.to_csv('WCHD_Expanded_Reports.csv')
+full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
+# current viz routines assume single date index and do not handle the s
+# index that includes state/county fips
+tests_wchd = full_tests_wchd.loc[:,17,17187]
+#tests_wchd.to_csv('WCHD_Expanded_Reports.csv')
 
 #%%
 
@@ -104,7 +108,7 @@ plot(fig,filename='graphics/WC-Tests-ThreeWeeks.html')
 
 
 
-#%%
+    #%%
 
 # Case Status Stacked Bars
 

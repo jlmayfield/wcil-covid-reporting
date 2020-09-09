@@ -16,7 +16,8 @@ import numpy as np
 
 #  *****Depends on Raw Data*****
 def _phase(wchd_data):
-    def which_phase(d):
+    def which_phase(idx):
+        d = idx[0]
         LAST_PHASE2 = pd.to_datetime('05-28-2020')
         LAST_PHASE3 = pd.to_datetime('06-25-2020')
         if d <= LAST_PHASE2:
@@ -29,7 +30,7 @@ def _phase(wchd_data):
     return p.rename('Phase')
 
 def _dayofweek(wchd_data):
-    days = wchd_data.index.map(lambda d: d.dayofweek).to_series(index=wchd_data.index)
+    days = wchd_data.index.map(lambda idx: idx[0].dayofweek).to_series(index=wchd_data.index)
     return days.rename('DayOfWeek')
 
 def _totalpos(wchd_data):
@@ -118,8 +119,7 @@ def expandWCHDData(raw_wchd_data):
                           _totalpos(raw_wchd_data),
                           _totaldeaths(raw_wchd_data),
                           _newrecover(raw_wchd_data)],
-                          axis=1)
-    expanded['countyFIPS'] = 17187
+                          axis=1)    
     expanded = pd.concat([expanded,
                           _totaltests(expanded),
                           _active(expanded)],
@@ -133,9 +133,9 @@ def expandWCHDData(raw_wchd_data):
     expanded = pd.concat([expanded,
                           _sevenDayAvg(expanded['% New Positive'])],
                           axis = 1)
-    cols = ['countyFIPS','DayOfWeek','Phase','New Tests',
-            'New Positive','New Negative','% New Positive',
-            '7 Day Avg % New Positive',
+    cols = ['DayOfWeek','Phase',
+            'New Tests', 'New Positive','New Negative',
+            '% New Positive','7 Day Avg % New Positive', 
             'New Recovered','New Deaths','Active Cases',
             'Total Tests','Total Positive','Total Negative',
             'Total Recovered','Total Deaths', 'Region 2 Pos Rate'

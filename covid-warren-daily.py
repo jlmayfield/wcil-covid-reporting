@@ -85,14 +85,13 @@ allthethings = nhood + il_select + ia_select
 
 
 #%%
-tests_wchd = cvda.expandWCHDData(reports_wchd)
-cases = cvdp.datefix(cases)
-cases = cvdp.prune_data(cases)
+tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
+wchd_only = tests_wchd.loc[:,17,17187]
 
 #%%
-pop = population.loc[tests_wchd['countyFIPS'].iloc[0]]['population']
+pop = population.loc[17187]['population']
 # just the deets for week + 1
-t = tests_wchd.iloc[-9:,3:10]
+t = wchd_only.iloc[-9:,2:10]
 print(t[['New Tests','New Positive','New Deaths','% New Positive',
         '7 Day Avg % New Positive']])
 
@@ -102,14 +101,14 @@ print(t[['New Tests','New Positive','New Deaths','% New Positive',
 # tests_wchd.groupby(pd.Grouper(level=0,freq='W-SAT'))
 
 
-agg_data = tests_wchd[['New Tests','New Positive','New Deaths']]
+agg_data = wchd_only[['New Tests','New Positive','New Deaths']]
 weeks = agg_data.groupby(pd.Grouper(level=0,freq='W-SAT',label="right")).sum()
 weeks['% New Positive'] = weeks['New Positive']/weeks['New Tests']
 weeks['New Positive per 100k'] = weeks['New Positive'] * 100000 / pop 
 print("Sunday to Saturday")
 print(weeks.iloc[-4:])
 
-agg_data = tests_wchd[['New Tests','New Positive','New Deaths']]
+agg_data = wchd_only[['New Tests','New Positive','New Deaths']]
 weeks = agg_data.groupby(pd.Grouper(level=0,freq='W-FRI',label="right")).sum()
 weeks['% New Positive'] = weeks['New Positive']/weeks['New Tests']
 weeks['New Positive per 100k'] = weeks['New Positive'] * 100000 / pop 
