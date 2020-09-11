@@ -33,7 +33,8 @@ population = pd.read_csv('covid_county_population_usafacts.csv',
 
 cases = pd.read_csv('covid_confirmed_usafacts.csv',
                          dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
-                                'County Name':str, 'State':str},
+                                'County Name':str, 'State':str,
+                                'date': np.datetime64},
                          index_col = 'countyFIPS')
 
 

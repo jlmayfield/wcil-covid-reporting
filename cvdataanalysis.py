@@ -79,20 +79,42 @@ def _newposrate(wchd_data):
 ## Fill initial values with 0?
 def _sevenDayAvg(column):
     name = '7 Day Avg ' + column.name
-    sda = column.rolling(7).mean().fillna(0)
-    return sda.rename(name)
+    def roller(grp):
+        return grp.rolling(7,min_periods=1).mean()
+    sda = column.to_frame().groupby(level=['countyFIPS']).apply(roller)
+    return sda[column.name].rename(name)
 
 def _per100k(column,pop):
-    c_frame = column.to_frame()
-    cidx = c_frame.index
-    newname = column.name + ' per 100k'
-    adjusted = ( (c_frame.loc[ (slice(None),
-                                slice(None),
-                                cf), :] * 100000 / pop['population'].loc[cf]).iloc[:,0].rename(newname) 
-                for cf in cidx.get_level_values('countyFIPS').unique() )
-    return adjusted
-    
-    
+    '''
+    Returns a generator for per100k 
+
+    Parameters
+    ----------
+    column : TYPE
+        DESCRIPTION.
+    pop : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    adjusted : TYPE
+        DESCRIPTION
+    '''
+    def scale(row):
+        if row['countyFIPS'] in [0,1]:
+            row[column.name] = 0
+        elif pop['population'][row['countyFIPS']] == 0:
+            row[column.name] = 0
+        else:
+            p = pop['population'][row['countyFIPS']]
+            row[column.name] = row[column.name] / p * 100000.0 
+        return row
+    flat = column.to_frame().reset_index()
+    newname = column.name + ' per 100k'   
+    flat = flat.apply(scale,axis=1)
+    newcol = flat.set_index(['date','stateFIPS','countyFIPS'])
+    newcol = newcol[column.name].rename(newname)              
+    return newcol
     
 
 #%%
@@ -164,107 +186,43 @@ def _ilregions(usf_cases,pop):
                '9':[17111,17097],
                #cook (chicago land) was artificially broken up into 2 regions      
                '10-11':[17031]}    
-    def find_region(fips):
+    def find_region(idx):
+        fips = idx[2]
         for k in regions:
             if fips in regions[k]:
                 return 'IL-'+ k
         if fips != 0:
             return pop.loc[fips]['State']
         else:
-            return ''
-    nonzeros = usf_cases.index.map(find_region).to_series(index=usf_cases.index)   
+            return idx[1]
+    nonzeros = usf_cases.index.map(find_region).to_series(index=usf_cases.index)
+    nonzeros = nonzeros.rename('Recovery Region')
     return nonzeros
 
 
-## Intended use is on previously selected subset of USFacts dataset
-def expandUSFData(usf_cases,pop):
-    reorg = usf_cases.drop(['County Name','State'],
-                           axis=1).reset_index().set_index(['countyFIPS','stateFIPS'])
-    reorg = reorg.stack().rename('Total Cases').to_frame()
-    reorg.index.names = ['countyFIPS','stateFIPS','date']
-    reorg = reorg.reorder_levels(['date','stateFIPS','countyFIPS'])
-    #reorg = pd.concat([reorg,_per100k(reorg['Total Cases'],pop)])
+def _newpos(totcases):
+    daily = totcases.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
+    return daily.rename('New Positive')
+
+## Intended use is on previously selected subset of USFacts dataset.
+
+def expandUSFData(usf_cases,pop):    
+    reorg = pd.concat([usf_cases,
+                       _phase(usf_cases),                       
+                       _dayofweek(usf_cases),
+                       _ilregions(usf_cases, pop),
+                       _newpos(usf_cases['Total Positive'])],
+                      axis=1)    
+    reorg = pd.concat([reorg,                       
+                       _per100k(reorg['New Positive'], pop),
+                       _per100k(reorg['Total Positive'], pop)],
+                      axis=1)
+    reorg = pd.concat([reorg,
+                       _sevenDayAvg(reorg['New Positive']),
+                       _sevenDayAvg(reorg['New Positive per 100k'])],
+                      axis=1)    
     return reorg
     
-
-#%%
-
-def to_for100k(casedata,pop):
-    """
-    Convert case numbers to a per 100000 scale based on populations listed in
-    pop.
-
-    Parameters
-    ----------
-    casedata : DataFrame
-        county level case data  
-    pop : Dataframe
-        county level population
-
-    Returns
-    -------
-    normed : DataFrame
-        Copy of casedata with all case numbers scaled to per 100000 people. 
-
-    """
-    normed = casedata.copy()
-    dates = normed.columns[3:]
-    for i in normed.index:
-        cpop = pop.loc[i]['population']
-        normed.update( (normed.loc[[i]][dates] * 100000) / cpop)
-    return normed
-
-
-
-def to_new_daily(casedata):
-    """
-    Compute new daily cases from total cases per day. At least one day of
-    padding (zero cases) is assumed
-
-    Parameters
-    ----------
-    casedata : DataFrame
-        Dataset of total cases by date
-
-    Returns
-    -------
-    daily : DataFrame
-        Dataset of new cases per date
-
-    """
-    daily = casedata.copy()
-    dates = casedata.columns[3:]    
-    for i in range(1,len(dates)):
-        yest = casedata[dates[i-1]]
-        today = casedata[dates[i]]
-        daily[dates[i]] = today - yest
-    return daily
-
-
-def to_sevenDayAvg(casedata):
-    """
-    Compute 7 day average for values in casedata. The first 6 dates in the 
-    data set are used for averaging but dropped from the result. It's recommended
-    that, when possible, these be days prior to verified cases. (see prune data)
-    Parameters
-    ----------
-    casedata : DataFrame
-        County level case data.
-
-    Returns
-    -------
-    avgs : Dataframe
-        7 day rolling averages of casedata
-
-    """
-    dates = casedata.columns[3:]
-    not_dates = casedata.columns[0:3]
-    avgs = casedata[list(not_dates)+list(dates[6:])].copy()
-    for i in range(6,len(dates)):
-        week = casedata[dates[i-6:i+1]]
-        avg = week.mean(axis=1).round(decimals=2)
-        avgs[dates[i]] = avg
-    return avgs
 
 #%%    
 

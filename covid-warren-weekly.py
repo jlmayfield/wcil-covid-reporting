@@ -55,7 +55,7 @@ population = pd.read_csv('covid_county_population_usafacts.csv',
 
 cases = pd.read_csv('covid_confirmed_usafacts.csv',
                          dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
-                                'County Name':str, 'State':str},
+                                'County Name':str, 'State':str},                         
                          index_col = 'countyFIPS')
 
 reports_wchd = pd.read_csv('WCHD_Reports.csv',
@@ -108,7 +108,7 @@ plot(fig,filename='graphics/WC-Tests-ThreeWeeks.html')
 
 
 
-    #%%
+#%%
 
 # Case Status Stacked Bars
 
@@ -136,42 +136,31 @@ plot(fig,filename='graphics/WC-Demographics-Threeweeks.html')
 
 #%%
 
-cases = cvdp.datefix(cases)
-cases = cvdp.prune_data(cases)
-
-
-#%%
-
+usaf = cvdp.prepusafacts(cases)
 aoi_fips = region2 + ia_select
-aoi = cvdp.prune_data(cases.loc[aoi_fips])
-
-aoi_daily = cvda.to_new_daily(aoi)
-aoi_7day = cvda.to_sevenDayAvg(aoi_daily)
-
-aoi_normed_daily = cvda.to_for100k(aoi_daily,population)
-aoi_nd_7day = cvda.to_sevenDayAvg(aoi_normed_daily)
-
+aoi = usaf.loc[:,:,aoi_fips]
+aoi = cvda.expandUSFData(aoi, population)
 
 #%%
 
-warren_7day = cvdp.prune_data(aoi_7day.loc[warren])
-warren_daily = cvdp.prune_data(aoi_daily.loc[warren])
-
-daily_max =  warren_daily.iloc[:,3:].max().max()
-
-
-#%%
-
-d = cvdv.prep_for_animate(aoi.iloc[:,[0,1,2,-1]])
-d_off = cvdv.prep_for_animate(aoi.iloc[:,[0,1,2,-8]])
-cnames = cvdv.get_fips_dict(aoi)
-d['County'] = d['fips'].apply( lambda f : cnames[f] )
-d['Cases'] = d['Cases'] - d_off['Cases']
+# Choropleth of Total Cases in the last week
+# !! Week is gathered Saturday to Friday so numbers/dates are incomplete
+# (or thus far..) when run without Friday's numbers
 
 
+lastday_actual = aoi.index.get_level_values('date').unique()[-1]
+# weekly totals (all time) - Saturday to Friday Basis
+weekly = aoi[['New Positive']].groupby([pd.Grouper(level='date',                     
+                                                         freq='W-FRI',
+                                                         label="right"),
+                                        pd.Grouper(level='countyFIPS')]).sum()
+lastday = weekly.index.get_level_values('date').unique()[-1]
+d = weekly.loc[lastday,:]
+cnames = cvdv.get_fips_dict(d.index,population)
+d['County'] = d.index.map( lambda f : cnames[f] )
 fig = go.Figure(go.Choroplethmapbox(geojson=counties, 
-                                    locations= d['fips'],
-                                    z = d['Cases'],
+                                    locations= d.index,
+                                    z = d['New Positive'],
                                     text = d['County'],
                                     colorscale="rdylgn_r",
                                     marker_opacity = 0.2,
@@ -180,7 +169,8 @@ fig.update_layout(mapbox_style='streets', mapbox_accesstoken=MB_TOKEN,
                   mapbox_zoom = 6,
                   mapbox_center = {'lon':-89.8130, 'lat': 41.0796},
                   title="Total Confirmed COVID-19 Cases for <br>" +
-                  aoi.columns[-7] + ' to ' + aoi.columns[-1])
+                  str((lastday - pd.Timedelta(6,unit='D')).date()) +
+                  ' to ' + str(lastday_actual.date()))
 
 totmap_div = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/Region-Map-Total-OneWeek-DIV.txt','w') as f:
@@ -191,43 +181,34 @@ plot(fig,filename='graphics/Region-Map-OneWeek.html')
 #%%
 
 # Taking a Regional Look
+reg_total = aoi['New Positive'].groupby(level='date').sum().to_frame()
+reg_total['7 Day Avg New Positive'] = reg_total['New Positive'].rolling(7,min_periods=1).mean()
 
-reg_total = aoi_daily.iloc[:,-27:].sum().to_frame().transpose()
-dates = list(reg_total.columns)
-reg_total['County Name'] = 'Local Region'
-reg_total['State'] = 'IL & IA'
-reg_total['StateFIPS'] = 0 
-reg_total = reg_total[['County Name', 'State', 'StateFIPS'] + dates]
-
-reg_7day = cvda.to_sevenDayAvg(reg_total)
-
-day = cvdv.plot_prep(reg_total.iloc[:,[0,1,2]+list(range(9,30))])
-avg=cvdv.plot_prep(reg_7day)
-
+three_weeks = reg_total.iloc[-21:]
 
 #%%
-
-
-# Region - Total Cases
+# Region - Total Cases (daily bars with 7-day avg trend line)
 
 fig = go.Figure()
-fig.add_trace(go.Bar(x = list(day.index),y = list(day.iloc[:,0]),
+fig.add_trace(go.Bar(x = list(three_weeks.index), 
+                     y = three_weeks['New Positive'],
                      name='New Cases',
                      hovertemplate='New Cases: %{y}<extra></extra>',
                      marker_color=px.colors.qualitative.Safe[1])
               )
-fig.add_trace(go.Scatter(x=list(avg.index),y=list(avg.iloc[:,0]),                         
+fig.add_trace(go.Scatter(x=list(three_weeks.index),
+                         y=three_weeks['7 Day Avg New Positive'],                         
                          mode="lines",name='Seven Day Average',
                          hovertemplate='Current Avg: %{y:.2f}<extra></extra>',
                          marker_color=px.colors.qualitative.Safe[0]))
 fig.update_layout(title='Daily Confirmed Cases of COVID-19 in Region<br>'+
-                  str(day.index[0])[:10] + ' to ' + str(day.index[-1])[:10],                  
+                  str(three_weeks.index[0])[:10] + ' to ' + str(three_weeks.index[-1])[:10],                  
                   xaxis = dict(
                       tickmode = 'array',
-                      tickvals = list(day.index[[0,7]])+list(day.index[-7:]),
+                      tickvals = list(three_weeks.index[[0,7]])+list(three_weeks.index[-7:]),
                       tickangle=45),                  
                   yaxis = dict(
-                      range=(-0.1,day.iloc[:,0].max()+5),
+                      range=(-0.1,three_weeks.iloc[:,0].max()+5),
                       tickmode = 'linear',
                       tick0=0, dtick=25),                     
                   xaxis_showgrid=False, 
@@ -250,29 +231,31 @@ plot(fig,filename='graphics/Region-NewCases-ThreeWeeks.html')
 
 #%%
 
-# map with total cases per 100000 as of 7/31
+# county map with new cases/100k people for 1 week
 
-# map with total cases as of 7/31
-d = cvdv.prep_for_animate(cvda.to_for100k(aoi.iloc[:,[0,1,2,-1]],population))
-# stuff to take out
-d_off = cvdv.prep_for_animate(cvda.to_for100k(aoi.iloc[:,[0,1,2,-8]],population))
-cnames = cvdv.get_fips_dict(aoi)
-d['County'] = d['fips'].apply( lambda f : cnames[f] )
-d['Cases'] = d['Cases'] - d_off['Cases']
+lastday_actual = aoi.index.get_level_values('date').unique()[-1]
+weekly = aoi[['New Positive per 100k']].groupby([pd.Grouper(level='date',                     
+                                                     freq='W-FRI',
+                                                     label="right"),
+                                        pd.Grouper(level='countyFIPS')]).sum()
+lastday = weekly.index.get_level_values('date').unique()[-1]
+d = weekly.loc[lastday,:]
+cnames = cvdv.get_fips_dict(d.index,population)
+d['County'] = d.index.map( lambda f : cnames[f] )
 
 # IL gets twitchy at 50+ cases per week
 # Harvard Groups uses [0,1),[1,10),[10,25),25+ 
 # So Let's just go yellow at the IL mark and Red at the Harvard High mark. 
-yl_cutoff = 50 / d['Cases'].max() 
-rd_cutoff = 175 / d['Cases'].max()
+yl_cutoff = 50 / d['New Positive per 100k'].max() 
+rd_cutoff = 175 / d['New Positive per 100k'].max()
 
 
 fig = go.Figure(go.Choroplethmapbox(geojson=counties, 
-                                    locations= d['fips'],
-                                    z = d['Cases'],
+                                    locations= list(d.index),
+                                    z = d['New Positive per 100k'],
                                     text = d['County'],                                    
                                     marker_opacity = 0.2,
-                                    hovertemplate='%{text}<br>Total Cases per 100000: %{z}<extra></extra>',
+                                    hovertemplate='%{text}<br>Total Cases per 100000: %{z:.2f}<extra></extra>',
                                     colorscale = [
                                         [0,'green'],
                                         [yl_cutoff,'yellow'],
@@ -283,7 +266,8 @@ fig.update_layout(mapbox_style='streets', mapbox_accesstoken=MB_TOKEN,
                   mapbox_zoom = 6,
                   mapbox_center = {'lon':-89.8130, 'lat': 41.0796},
                   title="Total Confirmed COVID-19 Cases per 100,000 people for<br>"+
-                  aoi.columns[-7] + ' to ' + aoi.columns[-1])
+                  str((lastday-pd.Timedelta(6,unit='D')).date()) +
+                  ' to ' + str(lastday_actual.date()))
 
 totmap_div = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/Region-Map-NormedTotal-OneWeek-DIV.txt','w') as f:
@@ -291,26 +275,14 @@ with open('graphics/Region-Map-NormedTotal-OneWeek-DIV.txt','w') as f:
     f.close()
 plot(fig,filename='graphics/Region-Map-NormedTotal-OneWeeks.html')
 
-#%%
-
-# daily actual moving bars
-
-allofit = cvdp.prune_data(aoi_daily)
-fig  = cvdv.animated_bars(allofit,21,
-                          "Daily COVID-19 Cases by County")
-dailybars_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/Region-Bars-ThreeWeeks-DIV.txt','w') as f:
-    f.write(dailybars_div)
-    f.close()
-plot(fig,filename='graphics/Region-Bars-ThreeWeeks.html')
 
 #%%
 
 # daily per 100,000 moving bars
-
-allofit = cvdp.prune_data(aoi_normed_daily)
+allofit = aoi[['New Positive per 100k']]
 fig  = cvdv.animated_bars(allofit,21,
-                          "Daily COVID-19 Cases per 100,000 by County")
+                          "Daily COVID-19 Cases per 100,000 by County",
+                          population)
 dailybars_div = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/Region-BarsNormed-ThreeWeeks-DIV.txt','w') as f:
     f.write(dailybars_div)
@@ -321,9 +293,10 @@ plot(fig,filename='graphics/Region-BarsNormed-ThreeWeeks.html')
 
 # daily Seven Day Average per 100,000
 
-allofit = cvdp.prune_data(aoi_nd_7day)
+allofit = aoi[['7 Day Avg New Positive per 100k']]
 fig  = cvdv.animated_bars(allofit,21,
-                          "Seven Day Average of COVID-19 Cases per 100,000 by County")
+                          "Seven Day Average of COVID-19 Cases per 100,000 by County",
+                          population)
 dailybars_div = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/Region-BarsNormed7Day-ThreeWeeks-DIV.txt','w') as f:
     f.write(dailybars_div)
