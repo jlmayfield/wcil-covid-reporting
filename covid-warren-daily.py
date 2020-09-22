@@ -10,6 +10,7 @@ Created on Thu Jul  2 15:07:17 2020
 import pandas as pd
 import numpy as np
 
+from plotly.subplots import make_subplots
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.offline import plot
@@ -91,10 +92,86 @@ wchd_only = tests_wchd.loc[:,17,17187]
 
 #%%
 pop = population.loc[17187]['population']
-# just the deets for week + 1
-t = wchd_only.iloc[-9:,2:10]
-print(t[['New Tests','New Positive','New Deaths','% New Positive',
-        '7 Day Avg % New Positive']])
+agg_data = wchd_only[['New Tests','New Positive','New Deaths']]
+
+months = agg_data.groupby(pd.Grouper(level=0,freq='MS')).sum()
+months['% New Positive'] = months['New Positive']/months['New Tests']
+months['New Positive per 100k'] = months['New Positive'] * 100000 / pop 
+mnth_snap = months.loc[pd.to_datetime('2020-03-01'):,:].reset_index()
+
+weeks = agg_data.groupby(pd.Grouper(level=0,freq='W-SAT',label="right")).sum()
+weeks['% New Positive'] = weeks['New Positive']/weeks['New Tests']
+weeks['New Positive per 100k'] = weeks['New Positive'] * 100000 / pop 
+wk_snap = weeks.iloc[-8:].reset_index()
+
+day_snap = wchd_only.iloc[-9:,:][['New Tests','New Positive','New Deaths','% New Positive',
+        '7 Day Avg % New Positive']].reset_index()
+
+
+#%%
+fig = make_subplots(rows=3, cols=1,
+                    shared_xaxes=True,
+                    #vertical_spacing=0.03,
+                    specs=[[{"type": "table"}],
+                           [{"type": "table"}],
+                           [{"type": "table"}]])
+fig.add_trace(
+    go.Table(columnwidth = [10,10,10,10,10,10],
+             header={'values':list(mnth_snap.columns),
+                     'align':'left'},
+             cells={'values':[mnth_snap['date'].apply(lambda d: str(d.month_name())),
+                              mnth_snap['New Tests'],
+                              mnth_snap['New Positive'],
+                              mnth_snap['New Deaths'],
+                              mnth_snap['% New Positive'].apply(lambda p: '{:.2%}'.format(p)),
+                              mnth_snap['New Positive per 100k'].apply(lambda c:'{:.2f}'.format(c))],
+                    'align':'left'}),
+    row=1,col=1)
+fig.add_trace(
+    go.Table(columnwidth = [10,10,10,10,10,10],
+             header={'values':list(wk_snap.columns),
+                     'align':'left'},
+             cells={'values':[wk_snap['date'].apply(lambda d: str(d.date())),
+                              wk_snap['New Tests'],
+                              wk_snap['New Positive'],
+                              wk_snap['New Deaths'],
+                              wk_snap['% New Positive'].apply(lambda p: '{:.2%}'.format(p)),
+                              wk_snap['New Positive per 100k'].apply(lambda c:'{:.2f}'.format(c))],
+                    'align':'left'}),
+    row=2,col=1)
+fig.add_trace(
+    go.Table(columnwidth = [10,10,10,10,10,10],
+             header={'values':list(wk_snap.columns),
+                     'align':'left'},
+             cells={'values':[wk_snap['date'].apply(lambda d: str(d.date())),
+                              wk_snap['New Tests'],
+                              wk_snap['New Positive'],
+                              wk_snap['New Deaths'],
+                              wk_snap['% New Positive'].apply(lambda p: '{:.2%}'.format(p)),
+                              wk_snap['New Positive per 100k'].apply(lambda c:'{:.2f}'.format(c))],
+                    'align':'left'}),
+    row=2,col=1)
+fig.add_trace(
+    go.Table(columnwidth = [10,10,10,10,10,10,10],
+             header={'values':list(day_snap.columns),
+                     'align':'left'},
+             cells={'values':[day_snap['date'].apply(lambda d: str(d.date())),
+                              day_snap['New Tests'],
+                              day_snap['New Positive'],
+                              day_snap['New Deaths'],
+                              day_snap['% New Positive'].apply(lambda p: '{:.2%}'.format(p)),
+                              day_snap['7 Day Avg % New Positive'].apply(lambda p: '{:.2%}'.format(p))],
+                    'align':'left'}),
+    row=3,col=1)
+
+
+fig.update_layout(showlegend=False)
+plot(fig)
+    
+
+
+
+
 
 #   Group into Weeks Ending on Sunday (Mon -> Sunday)
 # tests_wchd.groupby(pd.Grouper(level=0,freq='W'))
@@ -102,29 +179,5 @@ print(t[['New Tests','New Positive','New Deaths','% New Positive',
 # tests_wchd.groupby(pd.Grouper(level=0,freq='W-SAT'))
 
 
-agg_data = wchd_only[['New Tests','New Positive','New Deaths']]
-weeks = agg_data.groupby(pd.Grouper(level=0,freq='W-SAT',label="right")).sum()
-weeks['% New Positive'] = weeks['New Positive']/weeks['New Tests']
-weeks['New Positive per 100k'] = weeks['New Positive'] * 100000 / pop 
-print("Sunday to Saturday")
-print(weeks.iloc[-4:])
+#%%
 
-agg_data = wchd_only[['New Tests','New Positive','New Deaths']]
-weeks = agg_data.groupby(pd.Grouper(level=0,freq='W-FRI',label="right")).sum()
-weeks['% New Positive'] = weeks['New Positive']/weeks['New Tests']
-weeks['New Positive per 100k'] = weeks['New Positive'] * 100000 / pop 
-print("Sat to Friday")
-print(weeks.iloc[-4:])
-
-months = agg_data.groupby(pd.Grouper(level=0,freq='MS')).sum()
-months['% New Positive'] = months['New Positive']/months['New Tests']
-months['New Positive per 100k'] = months['New Positive'] * 100000 / pop 
-
-
-
-
-
-print(months)
-
-
-  

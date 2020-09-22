@@ -264,7 +264,7 @@ def wccasestatusreport(wchd_data):
                            tickangle=45),                  
                        yaxis = dict(
                            tickmode = 'linear',
-                           tick0=0, dtick=10,
+                           tick0=0, dtick=20,
                            title = 'Cases'
                            ),
                        #colorway=px.colors.qualitative.Set1,
