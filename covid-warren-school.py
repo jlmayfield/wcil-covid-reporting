@@ -55,209 +55,271 @@ tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 p = 16981
 
 
-#%%
 
-# needs actual and per 100k counts
-def ildph_per100k(counts):
-    def assign_risk(d):
-        if counts.loc[d]['New Positive'] < 10 or \
-            counts.loc[d]['Cases per 100k'] <= 50: 
-            return 'Minimal'
-        elif counts.loc[d]['Cases per 100k'] < 100: 
-            return 'Moderate'
+#%%
+# '#3498DB'
+RISK_COLORS = {'Minimal':'whitesmoke','Moderate':'rgba(255,215,0,0.5)','Substantial':'rgba(205,92,92,0.5)'}
+
+
+def stylecp100k_cell(cp100k):
+    def val2color(val):
+        if round(val) <= 50:
+            return RISK_COLORS['Minimal']
+        elif round(val) <= 100:
+            return RISK_COLORS['Moderate']
         else:
-            return 'Substantial'
-    risk = counts.index.map(assign_risk).to_series()
-    risk.index = counts.index
-    return risk.rename('Cases per 100k Risk')
+            return RISK_COLORS['Substantial']
+    return [val2color(v) for v in cp100k]
 
-def ildph_posrate(rates):
-    def assign_risk(d):
-        rate = rates.loc[d]['Positive Test Rate']
-        if rate <= 0.05:
-            return 'Minimal'
-        elif rate <= 0.08:
-            return 'Moderate'
+def stylecp100k_text(cp100k):
+    def val2txt(val):
+        if round(val) <= 50:
+            return "{:.1f}".format(val)
         else:
-            return 'Substantial'
-    risk = rates.index.map(assign_risk).to_series()
-    risk.index = rates.index
-    return risk.rename('Positive Test Rate Risk')
+            return "<b>{:.1f}<b>".format(val)
+    return [val2txt(v) for v in cp100k]
 
-
-# works for both cases and youth cases
-# These categories are ... awkward .
-#  
-def ildph_cases(actuals):    
-    def assign_risk(d):
-        if d == actuals.index[0]:
-            return ''
-        weeks = np.array(actuals.loc[d],
-                         actuals.loc[d-pd.Timedelta(1,unit='W')])
-        if np.isnan(weeks).any() or np.isinf(weeks).any():
-            return '???? (Non-numerical values)'            
-        elif (weeks < 0).any():
-            return 'Minimal (Some Decrease)'
-        elif (weeks < .05).all():
-            return 'Minimal (Under 5%)'
-        elif (weeks >= .05).all() and (weeks <= .10).all():
-            return 'Minimal'
-        elif (weeks > .10).all() and (weeks <= .20).all():
-            return 'Moderate'
-        elif (weeks > .20).all():
-            return 'Substantial'
+def styleprate_cell(prates):
+    def val2color(val):
+        if val <= .05:
+            return RISK_COLORS['Minimal']
+        elif val <= .08:
+            return RISK_COLORS['Moderate']
         else:
-            return '???? (mixed risk levels)'
-    risk = actuals.index.map(assign_risk).to_series()
-    risk.index = actuals.index
-    return risk.rename(actuals.columns[0] + ' Risk')
-        
-        
-    
+            return RISK_COLORS['Substantial']
+    return [val2color(v) for v in prates]
 
-RISK_COLORS = {'Minimal':'Green','Moderate':'Yellow','Substantial':'Red'}
-#%%
+def styleprate_text(prates):
+    def val2txt(val):
+        if val <= .05:
+            return "{:.1%}".format(val)
+        else:
+            return "<b>{:.1%}<b>".format(val)
+    return [val2txt(v) for v in prates]
 
-# weekly cases per 100k
-# weekly cases actual
-# weekly % change in # of cases week to week 
-# weekly youth (age < 20) cases actual
-# weekly % change in youth cases
-# pos rate weekly
+def stylecase_text(cases_streak):
+    def val2txt(i):
+        streak = cases_streak.loc[i][1]
+        val = round(cases_streak.loc[i][0])
+        chg = cases_streak.loc[i][2]
+        if np.isinf(chg):
+            return"{:<10} (+)".format(val)
+        if np.isnan(chg):
+            return"{:<10} (None)".format(val)
+        elif streak < 2:
+            return "{:<10} ({:+.1%})".format(val,chg)
+        else:
+            return "<b>{:<10} ({:+.1%})</b>".format(val,chg)
+    return [val2txt(i) for i in cases_streak.index]
 
-school_metrics = tests_wchd.loc[:,17,17187][['New Positive','New Tests']]
-school_metrics['Youth Cases'] = (demo_wchd.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1)
-school_metrics = school_metrics.groupby(pd.Grouper(level='date',freq='W-SUN')).sum()
-# ILDPH data for date d/m/y get reported on (d+1)/m/y (one day later) 
-# shift dates to align with state reporting
-school_metrics.index = school_metrics.index.map(lambda d : d - pd.Timedelta(1,unit='D'))
+def stylecase_cell(cases_streak):
+    def val2color(val):
+        if val < 2:
+            return RISK_COLORS['Minimal']
+        else:
+            return "rgba(255, 140, 0, 0.5)"
+    return [val2color(v) for v in cases_streak]
 
-school_metrics['Positive Test Rate'] = school_metrics['New Positive']/school_metrics['New Tests']
-school_metrics['Cases per 100k'] = school_metrics['New Positive']/p*100000
-school_metrics['New Positive Change'] = school_metrics['New Positive'].pct_change()
-school_metrics['New Youth Change'] = school_metrics['Youth Cases'].pct_change()
-school_metrics = pd.concat([school_metrics,
-                            ildph_per100k(school_metrics[['New Positive','Cases per 100k']]),
-                            ildph_posrate(school_metrics[['Positive Test Rate']]),
-                            ildph_cases(school_metrics[['New Positive Change']]),
-                            ildph_cases(school_metrics[['New Youth Change']])],
-                            axis=1)
 
-#%%
-
-fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-# Add traces
-fig.add_trace(
-    go.Scatter(x=school_metrics.index,
-               y=school_metrics['Cases per 100k'],
-               name="Cases per 100k"),
-    secondary_y=False,
-)
-
-fig.add_trace(
-    go.Scatter(x=school_metrics.index,
-               y=school_metrics['Positive Test Rate'],
-               name="Positive Test Rate"),
-    secondary_y=True,
-)
-
-# Set x-axis title
-fig.update_xaxes(title_text="Week Ending Date")
-
-# Set y-axes titles
-fig.update_yaxes(title_text="<b>primary</b> yaxis title", secondary_y=False)
-fig.update_yaxes(title_text="<b>secondary</b> yaxis title", secondary_y=True)
-
-plot(fig)
 
 #%%
 
-df = school_metrics[['New Positive','Cases per 100k','Cases per 100k Risk']].iloc[-13:-1].reset_index()
-fig = go.Figure(data=go.Table(
-         header={'values':['Week Ending Date',
-                           'Actual Cases',
-                           'Cases per 100k',
-                           'State Risk Assessment'],                      
-                 'align':'left'},
-             cells={'values':[df['date'].apply(lambda d: str(d.date())),
-                              df['New Positive'],
-                              df['Cases per 100k'].apply(lambda c : '{:.2f}'.format(c)),
-                              df['Cases per 100k Risk']],
-                    'align':'left'}))
+def increased(col):
+    return (col.diff() > 0).astype(int)
 
-cp100kWC_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/cp100kWC-DIV.html','w') as f:
-    f.write(cp100kWC_div)
+def increase_streak(col):
+    did_increase = increased(col)
+    tot_increase = did_increase.cumsum()
+    offsets = tot_increase.mask(did_increase != 0).ffill()
+    streaks = (tot_increase - offsets).astype(int)
+    return streaks.rename(col.name + " Increase Streak")
+
+
+def schooldaily(wchd_data,wchd_demo):
+    keepers = ['New Positive','New Tests','New Deaths',
+               '% New Positive','7 Day Avg % New Positive']
+    school = wchd_data.loc[:,17,17187][keepers]
+    school['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
+    school['Cases per 100k'] = school['New Positive'] * 100000 / p
+    school['Case Increases in 10 days'] = increased(school['New Positive']).rolling(10,min_periods=0).sum().astype(int)
+    school['Youth Increases in 10 days'] = increased(school['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
+    school['Positivity Rate Increases in 10 days'] = increased(school['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
+    return school
+
+def schoolweekly(daily,nweeks=1):
+    basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
+    school = basis.groupby(pd.Grouper(level='date',
+                                      freq=str(nweeks)+'W-SUN',
+                                      closed='left',
+                                      label='left')).sum()
+    school['Cases per 100k'] = school['New Positive'] * 100000 / p
+    school['% New Positive'] = school['New Positive']/school['New Tests']
+    school['New Positive Change'] = school['New Positive'].pct_change()
+    school['New Youth Change'] = school['Youth Cases'].pct_change()
+    school['Consecutive Case Increases'] = increase_streak(school['New Positive'])
+    school['Consecutive Youth Increases'] = increase_streak(school['Youth Cases'])
+    return school
+
+def schoolmonthly(daily):
+    basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
+    school = basis.groupby(pd.Grouper(level='date',freq='MS',
+                                      closed='left',label='left')).sum()
+    # assume official test dates are a day prior to align with state
+    school['Cases per 100k'] = school['New Positive'] * 100000 / p
+    school['% New Positive'] = school['New Positive']/school['New Tests']
+    return school
+
+
+#%%
+
+all_the_days = schooldaily(tests_wchd, demo_wchd)
+# 1 day lag between state attribution and public release
+all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
+
+this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
+
+this_week = all_the_days.loc[this_sunday:]
+fourweeks = schoolweekly(all_the_days,nweeks=1).iloc[-4:]
+twomonths = schoolmonthly(all_the_days).iloc[-2:]
+
+#%%
+
+df = this_week.reset_index().sort_values('date',ascending=False)
+thisweek_table1 = go.Table(#columnwidth = [10,10,10,10,10,10,10],
+                           header={'values':['<b>Date</b>',
+                                            '<b>New Cases</b>',
+                                            '<b>New Youth Cases<b>',
+                                            '<b>New Cases per 100k</b>',
+                                            '<b>Positivity Rate</b>'
+                                            ],
+                                  'align':'left',
+                                  'fill_color':'gainsboro'},
+                           cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
+                                            df['New Positive'],
+                                            df['Youth Cases'],
+                                            df['Cases per 100k'].apply(lambda c:'{:.2f}'.format(c)),
+                                            styleprate_text(df['% New Positive'])
+                                           ],
+                                  'align':'left',
+                                  'fill_color':['whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
+                                                styleprate_cell(df['% New Positive']),
+                                                ],
+                                  'height': 30 },
+                           name = 'State Metrics This Week')
+
+thisweek_table2 = go.Table(#columnwidth = [10,10,10,10,10,10,10],
+                          header={'values':['<b>Date</b>',
+                                            '<b>Day-to-Day Increases in<br><em>New Cases</em><br>10 day Window</b>',
+                                            '<b>Day-to-Day Increases in<br><em>Youth Cases</em><br>10 day Window</b>',
+                                            '<b>Positivity Rate<br>7 Day Window</b>',
+                                            '<b>Day-to-Day Increases in<br><em>Positivity Rate</em><br>10 day Window</b>'
+                                            ],
+                                  'align':'left',
+                                  'fill_color':'gainsboro'},
+                          cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
+                                           df['Case Increases in 10 days'],
+                                           df['Youth Increases in 10 days'],
+                                           styleprate_text(df['7 Day Avg % New Positive']),
+                                           df['Positivity Rate Increases in 10 days']
+                                           ],
+                                 'align':'left',
+                                 'fill_color':
+                                     ['whitesmoke',
+                                      'whitesmoke',
+                                      'whitesmoke',
+                                      styleprate_cell(df['7 Day Avg % New Positive']),
+                                      'whitesmoke'
+                                      ],
+                                 'height':30},
+                              name='Trajectory Metrics This Week')
+
+#%%
+df = fourweeks.reset_index().sort_values('date',ascending=False)
+weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
+                          header={'values':['<b>Week Start Date</b>',
+                                            '<b>Cases per 100k</b>',
+                                            '<b>Positivity Rate</b>',
+                                            '<b>New Cases</b>',
+                                            '<b>Youth Cases</b>',
+                                            ],
+                                  'align':'left',
+                                  'fill_color':'gainsboro'},
+                          cells={'values':[df['date'].apply(lambda d: d.strftime("%B %d")),
+                                           stylecp100k_text(df['Cases per 100k']),
+                                           styleprate_text(df['% New Positive']),
+                                           stylecase_text(df[['New Positive',
+                                                              'Consecutive Case Increases',
+                                                              'New Positive Change']]),
+                                           stylecase_text(df[['Youth Cases',
+                                                              'Consecutive Youth Increases',
+                                                              'New Youth Change']])
+                                           ],
+                                 'align':'left',
+                                 'fill_color':
+                                     ['whitesmoke',
+                                      stylecp100k_cell(df['Cases per 100k']),
+                                      styleprate_cell(df['% New Positive']),
+                                      stylecase_cell(df['Consecutive Case Increases']),
+                                      stylecase_cell(df['Consecutive Youth Increases']),
+                                      ],
+                                 'height':30})
+
+#%%
+
+df = twomonths.reset_index().sort_values('date',ascending=False)
+monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
+                          header={'values':['<b>Month</b>',
+                                            '<b>Cases per 100k</b>',
+                                            '<b>Positivity Rate</b>',
+                                            '<b>New Cases</b>',
+                                            '<b>Youth Cases</b>',
+                                            '<b>New Deaths</b>'],
+                                  'align':'left',
+                                  'fill_color':'gainsboro'},
+                          cells={'values':[df['date'].apply(lambda d: d.strftime("%B")),
+                                           df['Cases per 100k'].apply(lambda c:'{:.2f}'.format(c)),
+                                           styleprate_text(df['% New Positive']),
+                                           df['New Positive'],
+                                           df['Youth Cases'],
+                                           df['New Deaths']],
+                                 'align':'left',
+                                 'fill_color':['whitesmoke',
+                                               'whitesmoke',
+                                               styleprate_cell(df['% New Positive']),
+                                               'whitesmoke',
+                                               'whitesmoke',
+                                               'whitesmoke'],
+                                 'height':30})
+
+
+#%%
+
+fig = make_subplots(rows=4, cols=1,
+                    vertical_spacing=0.1,
+                    horizontal_spacing=0.05,
+                    specs=[[{"type": "table"}],[{"type": "table"}],
+                            [{"type": "table"}],[{"type": "table"}]],
+                    subplot_titles=('State Metrics: This Week (Daily)',
+                                    'State Metrics: Four Weeks (Weekly)',
+                                    'Day-to-Day Trends',
+                                    'This Month vs. Last Month'))
+
+fig.add_trace(thisweek_table1,row=1,col=1)
+fig.add_trace(thisweek_table2,row=3,col=1)
+fig.add_trace(weekly_table,row=2,col=1)
+fig.add_trace(monthly_table,row=4,col=1)
+
+fig.update_layout(title_text="Warren County School's Daily Dashboard",
+                  #autosize=False,
+                  #width=1200,
+                  height=1200
+                  )
+
+plot(fig,filename='graphics/WC-School-Daily.html')
+div = plot(fig, include_plotlyjs=False, output_type='div')
+with open('school-report/WC-School-Daily.txt','w') as f:
+    f.write(div)
     f.close()
-plot(fig)   
-#%%
-
-
-
-#%%
-df = school_metrics[['New Positive','New Tests','Positive Test Rate','Positive Test Rate Risk']].iloc[-13:-1].reset_index()
-fig = go.Figure(data=go.Table(
-         header={'values':['Week Ending Date',
-                           'Positive Tests',
-                           'Total Tests Administered',
-                           'Positivity Rate',
-                           'State Risk Assessment'],                      
-                 'align':'left'},
-             cells={'values':[df['date'].apply(lambda d: str(d.date())),
-                              df['New Positive'],
-                              df['New Tests'],
-                              df['Positive Test Rate'].apply(lambda c : '{:.2%}'.format(c)),
-                              df['Positive Test Rate Risk']],
-                    'align':'left'}))
-
-posRateWC_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/posRateWC-DIV.html','w') as f:
-    f.write(posRateWC_div)
-    f.close()
-plot(fig)   
-
-#%%
-
-df = school_metrics[['Youth Cases','New Youth Change','New Youth Change Risk']].iloc[-13:-1].reset_index()
-fig = go.Figure(data=go.Table(
-         header={'values':['Week Ending Date',
-                           'New Youth (age < 20) Cases ',
-                           'Change from Last Week',
-                           'State Risk Assessment'],
-                 'align':'left'},
-             cells={'values':[df['date'].apply(lambda d: str(d.date())),
-                              df['Youth Cases'],
-                              df['New Youth Change'].apply(lambda p: '{:.2%}'.format(p)),
-                              df['New Youth Change Risk']],                              
-                    'align':'left'}))
-
-youthChangeWC_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/youthChangeWC-DIV.html','w') as f:
-    f.write(youthChangeWC_div)
-    f.close()
-plot(fig)   
-
-    #%%
-df = school_metrics[['New Positive','New Positive Change','New Positive Change Risk']].iloc[-13:-1].reset_index()
-fig = go.Figure(data=go.Table(
-         header={'values':['Week Ending Date',
-                           'New Cases',
-                           'Change from Last Week',
-                           'State Risk Assessment'],
-                 'align':'left'},
-             cells={'values':[df['date'].apply(lambda d: str(d.date())),
-                              df['New Positive'],
-                              df['New Positive Change'].apply(lambda p: '{:.2%}'.format(p)),
-                              df['New Positive Change Risk']],                              
-                    'align':'left'}))
-
-posChangeWC_div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/posChangeWC-DIV.html','w') as f:
-    f.write(posChangeWC_div)
-    f.close()
-plot(fig)   
-
-
-
-
