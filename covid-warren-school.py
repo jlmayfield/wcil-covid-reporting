@@ -178,9 +178,14 @@ all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
 this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
 
-this_week = all_the_days.loc[this_sunday:]
-fourweeks = schoolweekly(all_the_days,nweeks=1).iloc[-4:]
-twomonths = schoolmonthly(all_the_days).iloc[-2:]
+#this_week = all_the_days.loc[this_sunday:]
+#fourweeks = schoolweekly(all_the_days,nweeks=1).iloc[-4:]
+#twomonths = schoolmonthly(all_the_days).iloc[-2:]
+
+this_week = all_the_days.iloc[-28:]
+fourweeks = schoolweekly(all_the_days,nweeks=1).iloc[-20:]
+twomonths = schoolmonthly(all_the_days).iloc[-4:]
+
 
 #%%
 
@@ -292,7 +297,8 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                'whitesmoke',
                                                'whitesmoke',
                                                'whitesmoke'],
-                                 'height':30})
+                                 'height':30},
+                          )
 
 
 #%%
@@ -315,7 +321,7 @@ fig.add_trace(monthly_table,row=4,col=1)
 fig.update_layout(title_text="Warren County School's Daily Dashboard",
                   #autosize=False,
                   #width=1200,
-                  height=1200
+                  height=2400
                   )
 
 plot(fig,filename='graphics/WC-School-Daily.html')

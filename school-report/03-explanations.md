@@ -4,7 +4,7 @@
 
 #### Description of Tables and Metrics
 
-Data is attributed to the day *prior* to the date on the WCHD report. This is done in an attempt to align the data with the state Department of Health practice of making data public the day after it is received.
+Data is attributed to the day *prior* to the date on the WCHD report. This is done in an attempt to align the data with the state Department of Health practice of making data public the day after it is received. You can see a recent window of state data by looking at the [Regional Methodology](https://www.dph.illinois.gov/regionmetrics?regionID=2).  
 
 1. *State Metrics: This Week (Daily)* provides metrics for each day of the
 current week. Positivity rates are colored inline with the state's targets
