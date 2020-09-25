@@ -191,7 +191,7 @@ this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6
 # daily numbers for the current week
 this_week = all_the_days.loc[this_sunday:]
 
-completeweeks = all_the_days.loc[pd.to_datetime('2020-05-03'):this_sunday]
+completeweeks = all_the_days.loc[pd.to_datetime('2020-05-03'):this_sunday-pd.Timedelta(1,unit='D')]
 # weekly numbers for this week and two prior
 all_the_weeks = schoolweekly(completeweeks,nweeks=1)
 
