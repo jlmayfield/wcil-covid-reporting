@@ -141,8 +141,8 @@ def schooldaily(wchd_data,wchd_demo):
     school = wchd_data.loc[:,17,17187][keepers]
     school['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
     school['Cases per 100k'] = school['New Positive'] * 100000 / p
-    school['Case Increases in 10 days'] = increased(school['New Positive']).rolling(10,min_periods=0).sum().astype(int)
-    school['Youth Increases in 10 days'] = increased(school['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
+    school['Case Increases in 7 days'] = increased(school['New Positive']).rolling(7,min_periods=0).sum().astype(int)
+    school['Youth Increases in 7 days'] = increased(school['Youth Cases']).rolling(7,min_periods=0).sum().astype(int)
     school['Positivity Rate Increases in 10 days'] = increased(school['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
     return school
 
