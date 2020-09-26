@@ -197,7 +197,7 @@ def schoolmonthly(daily):
 
 all_the_days = schooldaily(tests_wchd, demo_wchd)
 # adjust for 1 day lag between state attribution and public release
-all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
+#all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
 # get week start date
 this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
@@ -273,7 +273,7 @@ fig.add_trace(thisweek,row=2,col=1)
 fig.add_trace(weekly_table,row=1,col=1)
 
 fig.update_layout(title_text="MR-238 Daily Dashboard",                  
-                  height=600)
+                  height=800)
 
 plot(fig,filename='graphics/MR238-Daily.html')
 div = plot(fig, include_plotlyjs=False, output_type='div')

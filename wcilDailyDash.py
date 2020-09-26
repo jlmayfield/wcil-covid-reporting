@@ -7,12 +7,10 @@ Created on Thu Sep 17 10:24:53 2020
 """
 
 
-
 import pandas as pd
 import numpy as np
 
 from plotly.subplots import make_subplots
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.offline import plot
 
@@ -25,7 +23,6 @@ MB_TOKEN = open(".mapbox_token").read()
 
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
-import cvdataviz as cvdv
 
 population = pd.read_csv('covid_county_population_usafacts.csv',
                          dtype={'countyFIPS':np.int64,
@@ -135,56 +132,52 @@ def increase_streak(col):
     return streaks.rename(col.name + " Increase Streak")
 
 
-def schooldaily(wchd_data,wchd_demo):
+def daily(wchd_data,wchd_demo):
     keepers = ['New Positive','New Tests','New Deaths',
                '% New Positive','7 Day Avg % New Positive']
-    school = wchd_data.loc[:,17,17187][keepers]
-    school['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
-    school['Cases per 100k'] = school['New Positive'] * 100000 / p
-    school['Case Increases in 7 days'] = increased(school['New Positive']).rolling(7,min_periods=0).sum().astype(int)
-    school['Youth Increases in 7 days'] = increased(school['Youth Cases']).rolling(7,min_periods=0).sum().astype(int)
-    school['Positivity Rate Increases in 10 days'] = increased(school['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
-    return school
+    wcil = wchd_data.loc[:,17,17187][keepers]
+    wcil['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
+    wcil['Cases per 100k'] = wcil['New Positive'] * 100000 / p
+    wcil['Case Increases in 10 days'] = increased(wcil['New Positive']).rolling(10,min_periods=0).sum().astype(int)
+    wcil['Youth Increases in 10 days'] = increased(wcil['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
+    wcil['Positivity Rate Increases in 10 days'] = increased(wcil['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
+    return wcil
 
-def schoolweekly(daily,nweeks=1):
+def weekly(daily,nweeks=1):
     basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
-    school = basis.groupby(pd.Grouper(level='date',
+    wcil = basis.groupby(pd.Grouper(level='date',
                                       freq=str(nweeks)+'W-SUN',
                                       closed='left',
                                       label='left')).sum()
-    school['Cases per 100k'] = school['New Positive'] * 100000 / p
-    school['% New Positive'] = school['New Positive']/school['New Tests']
-    school['New Positive Change'] = school['New Positive'].pct_change()
-    school['New Youth Change'] = school['Youth Cases'].pct_change()
-    school['Consecutive Case Increases'] = increase_streak(school['New Positive'])
-    school['Consecutive Youth Increases'] = increase_streak(school['Youth Cases'])
-    return school
+    wcil['Cases per 100k'] = wcil['New Positive'] * 100000 / p
+    wcil['% New Positive'] = wcil['New Positive']/wcil['New Tests']
+    wcil['New Positive Change'] = wcil['New Positive'].pct_change()
+    wcil['New Youth Change'] = wcil['Youth Cases'].pct_change()
+    wcil['Consecutive Case Increases'] = increase_streak(wcil['New Positive'])
+    wcil['Consecutive Youth Increases'] = increase_streak(wcil['Youth Cases'])
+    return wcil
 
-def schoolmonthly(daily):
+def monthly(daily):
     basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
-    school = basis.groupby(pd.Grouper(level='date',freq='MS',
+    wcil = basis.groupby(pd.Grouper(level='date',freq='MS',
                                       closed='left',label='left')).sum()
     # assume official test dates are a day prior to align with state
-    school['Cases per 100k'] = school['New Positive'] * 100000 / p
-    school['% New Positive'] = school['New Positive']/school['New Tests']
-    return school
+    wcil['Cases per 100k'] = wcil['New Positive'] * 100000 / p
+    wcil['% New Positive'] = wcil['New Positive']/wcil['New Tests']
+    return wcil
 
 
 #%%
 
-all_the_days = schooldaily(tests_wchd, demo_wchd)
+all_the_days = daily(tests_wchd, demo_wchd)
 # 1 day lag between state attribution and public release
-all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
+#all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
 this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
 
-#this_week = all_the_days.loc[this_sunday:]
-#fourweeks = schoolweekly(all_the_days,nweeks=1).iloc[-4:]
-#twomonths = schoolmonthly(all_the_days).iloc[-2:]
-
-this_week = all_the_days.iloc[-28:]
-fourweeks = schoolweekly(all_the_days,nweeks=1).iloc[-20:]
-twomonths = schoolmonthly(all_the_days).iloc[-4:]
+this_week = all_the_days.loc[this_sunday:]
+fiveweeks = weekly(all_the_days,nweeks=1).iloc[-5:]
+threemonths = monthly(all_the_days).iloc[-3:]
 
 
 #%%
@@ -192,61 +185,50 @@ twomonths = schoolmonthly(all_the_days).iloc[-4:]
 df = this_week.reset_index().sort_values('date',ascending=False)
 thisweek_table1 = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                            header={'values':['<b>Date</b>',
+                                            '<b>New Tests</b>',
                                             '<b>New Cases</b>',
+                                            '<b>Day-to-Day Increases in<br><em>New Cases</em><br>10 day Window</b>',
                                             '<b>New Youth Cases<b>',
+                                            '<b>Day-to-Day Increases in<br><em>Youth Cases</em><br>10 day Window</b>',
                                             '<b>New Cases per 100k</b>',
-                                            '<b>Positivity Rate</b>'
+                                            '<b>Positivity Rate</b>',
+                                            '<b>Positivity Rate<br>7 Day Window</b>',
+                                            '<b>Day-to-Day Increases in<br><em>Positivity Rate</em><br>10 day Window</b>'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                            cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
+                                            df['New Tests'],
                                             df['New Positive'],
+                                            df['Case Increases in 10 days'],
                                             df['Youth Cases'],
-                                            df['Cases per 100k'].apply(lambda c:'{:.2f}'.format(c)),
-                                            styleprate_text(df['% New Positive'])
+                                            df['Youth Increases in 10 days'],
+                                            df['Cases per 100k'].apply(lambda c:'{:.1f}'.format(c)),
+                                            styleprate_text(df['% New Positive']),
+                                            styleprate_text(df['7 Day Avg % New Positive']),
+                                             df['Positivity Rate Increases in 10 days']
                                            ],
                                   'align':'left',
                                   'fill_color':['whitesmoke',
                                                 'whitesmoke',
                                                 'whitesmoke',
                                                 'whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
                                                 styleprate_cell(df['% New Positive']),
+                                                styleprate_cell(df['7 Day Avg % New Positive']),
+                                                'whitesmoke'
                                                 ],
-                                  'height': 30 },
-                           name = 'State Metrics This Week')
-
-thisweek_table2 = go.Table(#columnwidth = [10,10,10,10,10,10,10],
-                          header={'values':['<b>Date</b>',
-                                            '<b>Day-to-Day Increases in<br><em>New Cases</em><br>10 day Window</b>',
-                                            '<b>Day-to-Day Increases in<br><em>Youth Cases</em><br>10 day Window</b>',
-                                            '<b>Positivity Rate<br>7 Day Window</b>',
-                                            '<b>Day-to-Day Increases in<br><em>Positivity Rate</em><br>10 day Window</b>'
-                                            ],
-                                  'align':'left',
-                                  'fill_color':'gainsboro'},
-                          cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
-                                           df['Case Increases in 10 days'],
-                                           df['Youth Increases in 10 days'],
-                                           styleprate_text(df['7 Day Avg % New Positive']),
-                                           df['Positivity Rate Increases in 10 days']
-                                           ],
-                                 'align':'left',
-                                 'fill_color':
-                                     ['whitesmoke',
-                                      'whitesmoke',
-                                      'whitesmoke',
-                                      styleprate_cell(df['7 Day Avg % New Positive']),
-                                      'whitesmoke'
-                                      ],
-                                 'height':30},
-                              name='Trajectory Metrics This Week')
+                                  'height': 30 })
 
 #%%
-df = fourweeks.reset_index().sort_values('date',ascending=False)
+df = fiveweeks.reset_index().sort_values('date',ascending=False)
 weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Week Start Date</b>',
                                             '<b>Cases per 100k</b>',
                                             '<b>Positivity Rate</b>',
+                                            '<b>New Tests</b>',
                                             '<b>New Cases</b>',
                                             '<b>Youth Cases</b>',
                                             ],
@@ -255,6 +237,7 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           cells={'values':[df['date'].apply(lambda d: d.strftime("%B %d")),
                                            stylecp100k_text(df['Cases per 100k']),
                                            styleprate_text(df['% New Positive']),
+                                           df['New Tests'],
                                            stylecase_text(df[['New Positive',
                                                               'Consecutive Case Increases',
                                                               'New Positive Change']]),
@@ -267,6 +250,7 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                      ['whitesmoke',
                                       stylecp100k_cell(df['Cases per 100k']),
                                       styleprate_cell(df['% New Positive']),
+                                      'whitesmoke',
                                       stylecase_cell(df['Consecutive Case Increases']),
                                       stylecase_cell(df['Consecutive Youth Increases']),
                                       ],
@@ -274,11 +258,12 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 
 #%%
 
-df = twomonths.reset_index().sort_values('date',ascending=False)
+df = threemonths.reset_index().sort_values('date',ascending=False)
 monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Month</b>',
                                             '<b>Cases per 100k</b>',
                                             '<b>Positivity Rate</b>',
+                                            '<b>New Tests</b>',
                                             '<b>New Cases</b>',
                                             '<b>Youth Cases</b>',
                                             '<b>New Deaths</b>'],
@@ -287,6 +272,7 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           cells={'values':[df['date'].apply(lambda d: d.strftime("%B")),
                                            df['Cases per 100k'].apply(lambda c:'{:.2f}'.format(c)),
                                            styleprate_text(df['% New Positive']),
+                                           df['New Tests'],
                                            df['New Positive'],
                                            df['Youth Cases'],
                                            df['New Deaths']],
@@ -296,6 +282,7 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                styleprate_cell(df['% New Positive']),
                                                'whitesmoke',
                                                'whitesmoke',
+                                               'whitesmoke',
                                                'whitesmoke'],
                                  'height':30},
                           )
@@ -303,29 +290,28 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 
 #%%
 
-fig = make_subplots(rows=4, cols=1,
+fig = make_subplots(rows=3, cols=1,
                     vertical_spacing=0.1,
                     horizontal_spacing=0.05,
-                    specs=[[{"type": "table"}],[{"type": "table"}],
-                            [{"type": "table"}],[{"type": "table"}]],
-                    subplot_titles=('State Metrics: This Week (Daily)',
-                                    'State Metrics: Four Weeks (Weekly)',
-                                    'Day-to-Day Trends',
-                                    'This Month vs. Last Month'))
+                    specs=[[{"type": "table"}],
+                           [{"type": "table"}],
+                            [{"type": "table"}]],
+                    subplot_titles=('Daily Reports From This Week',
+                                    'This Week vs Prior Weeks',                                    
+                                    'This Month vs. Prior Months'))
 
 fig.add_trace(thisweek_table1,row=1,col=1)
-fig.add_trace(thisweek_table2,row=3,col=1)
 fig.add_trace(weekly_table,row=2,col=1)
-fig.add_trace(monthly_table,row=4,col=1)
+fig.add_trace(monthly_table,row=3,col=1)
 
-fig.update_layout(title_text="Warren County School's Daily Dashboard",
+fig.update_layout(title_text="Warren County Daily Dashboard",
                   #autosize=False,
                   #width=1200,
-                  height=2400
+                  height=1200
                   )
 
-plot(fig,filename='graphics/WC-School-Daily.html')
+plot(fig,filename='graphics/WC-Daily.html')
 div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('school-report/WC-School-Daily.txt','w') as f:
+with open('graphics/WC-Daily.txt','w') as f:
     f.write(div)
     f.close()

@@ -184,7 +184,7 @@ def schoolmonthly(daily):
 
 all_the_days = schooldaily(tests_wchd, demo_wchd)
 # adjust for 1 day lag between state attribution and public release
-all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
+#   all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
 # get week start date
 this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
