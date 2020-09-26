@@ -5,14 +5,17 @@ highlighter:      pygments
 # Permalinks
 permalink:        pretty
 
-plugins: [jekyll-paginate]
+plugins:
+  - jekyll-paginate
+  - jekyll-gist
+
 
 # Setup
 title:            'COVID-19 in Warren County, IL'
 tagline:          'Tracking COVID-19 from Warren County, IL'
 description:      'A Data-Focused Look at the pandemic of 2020 as experienced in and around Western Illinois'
-url:              http://wcil-covid-reporting.github.io
-baseurl:          ''
+url:              http://jlmayfield.github.io/wcil-covid-reporting/
+baseurl:          /
 
 author:
   name:           'Logan Mayfield'
