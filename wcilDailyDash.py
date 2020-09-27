@@ -173,7 +173,10 @@ all_the_days = daily(tests_wchd, demo_wchd)
 # 1 day lag between state attribution and public release
 #all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
-this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
+# get week start date
+today = pd.to_datetime('today')
+this_sunday = pd.to_datetime(today - pd.offsets.Week(weekday=6)).date() if today.dayofweek != 6 else today.date() 
+
 
 this_week = all_the_days.loc[this_sunday:]
 fiveweeks = weekly(all_the_days,nweeks=1).iloc[-5:]
