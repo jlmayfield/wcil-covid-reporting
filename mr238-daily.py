@@ -200,7 +200,8 @@ all_the_days = schooldaily(tests_wchd, demo_wchd)
 #all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
 # get week start date
-this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
+today = pd.to_datetime('today')
+this_sunday = pd.to_datetime(today - pd.offsets.Week(weekday=6)).date() if today.dayofweek != 6 else today.date() 
 
 
 # weekly numbers for this week and two prior
