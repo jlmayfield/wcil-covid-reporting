@@ -15,11 +15,11 @@ title:            'COVID-19 in Warren County, IL'
 tagline:          'Tracking COVID-19 from Warren County, IL'
 description:      'A Data-Focused Look at the pandemic of 2020 as experienced in and around Western Illinois'
 url:              http://jlmayfield.github.io/wcil-covid-reporting/
-baseurl:          /
+baseurl:          ''
 
 author:
   name:           'Logan Mayfield'
-  url:            https://jlmayfield.github.io
+#  url:            https://jlmayfield.github.io
 
 paginate:         5
 
