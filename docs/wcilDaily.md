@@ -9,13 +9,13 @@ permalink: /wcil-daily-report/
 
 
 <div>
-        
-        
+
+
             <div id="d45b9787-5360-42b2-9def-dbad259feaf1" class="plotly-graph-div" style="height:1800px; width:800px;"></div>
             <script type="text/javascript">
-                
+
                     window.PLOTLYENV=window.PLOTLYENV || {};
-                    
+
                 if (document.getElementById("d45b9787-5360-42b2-9def-dbad259feaf1")) {
                     Plotly.newPlot(
                         'd45b9787-5360-42b2-9def-dbad259feaf1',
@@ -24,6 +24,6 @@ permalink: /wcil-daily-report/
                         {"responsive": true}
                     )
                 };
-                
+
             </script>
         </div>
