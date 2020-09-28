@@ -1,4 +1,3 @@
-
 ## Table Descriptions
 
 This dashboard contains two tables: one for the critical weekly metrics (Weekly Metrics) and one to monitor the daily reports for the current week (This Week). The weekly metric table provides a look at the current week plus two weeks prior. *Data for the current week are provisional and will be updated as daily reports are issued by Warren County Health Department (WCHD)*. Positivity rate in the current week can go up and down but all other metrics either increase or do not change.   
