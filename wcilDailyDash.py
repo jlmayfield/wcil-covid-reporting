@@ -100,13 +100,13 @@ def stylecase_text(cases_streak):
         val = round(cases_streak.loc[i][0])
         chg = cases_streak.loc[i][2]
         if np.isinf(chg):
-            return"{:<10} (+)".format(val)
+            return"{:<6} (+)".format(val)
         if np.isnan(chg):
-            return"{:<10} (None)".format(val)
+            return"{:<6} (None)".format(val)
         elif streak < 2:
-            return "{:<10} ({:+.1%})".format(val,chg)
+            return "{:<6} ({:+.1%})".format(val,chg)
         else:
-            return "<b>{:<10} ({:+.1%})</b>".format(val,chg)
+            return "<b>{:<6} ({:+.1%})</b>".format(val,chg)
     return [val2txt(i) for i in cases_streak.index]
 
 def stylecase_cell(cases_streak):
@@ -182,6 +182,13 @@ this_week = all_the_days.loc[this_sunday:]
 fiveweeks = weekly(all_the_days,nweeks=1).iloc[-5:]
 threemonths = monthly(all_the_days).iloc[-3:]
 
+ndays = len(this_week)
+
+margs = go.layout.Margin(l=0, #left margin
+                         r=0, #right margin
+                         b=0, #bottom margin
+                         t=25  #top margin
+                         )                          
 
 #%%
 
@@ -211,7 +218,15 @@ thisweek_table1 = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                 styleprate_cell(df['% New Positive']),                                                
                                                 'whitesmoke'
                                                 ],
-                                  'height': 30 })
+                                  })
+
+fig = go.Figure(data=thisweek_table1)
+fig.update_layout(title="Daily Case Reports",
+                  margin = margs,
+                  height= (ndays*40 + 150))
+weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
+
+
 #%%
 
 thisweek_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
@@ -236,7 +251,14 @@ thisweek_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                 styleprate_cell(df['7 Day Avg % New Positive']),
                                                 'whitesmoke'
                                                 ],
-                                  'height': 30 })
+                                  })
+
+
+fig = go.Figure(data=thisweek_trends)
+fig.update_layout(title="Daily Trends",
+                  margin = margs,
+                  height= (ndays*40 + 150))
+trenddiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 
 
@@ -271,12 +293,26 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                       'whitesmoke',
                                       stylecase_cell(df['Consecutive Case Increases']),
                                       stylecase_cell(df['Consecutive Youth Increases']),
-                                      ],
-                                 'height':30})
+                                      ]
+                                 })
+
+fig = go.Figure(data=weekly_table)
+fig.update_layout(title="This Week vs Prior Weeks",
+                  margin = margs,
+                  height= 300)
+weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
+    
 
 #%%
 
 df = threemonths.reset_index().sort_values('date',ascending=False)
+cell_vals = [df['date'].apply(lambda d: d.strftime("%B")),
+             df['Cases per 100k'].apply(lambda c:'{:.1f}'.format(c)),
+             styleprate_text(df['% New Positive']),
+             df['New Tests'],
+             df['New Positive'],
+             df['Youth Cases'],
+             df['New Deaths']]
 monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Month</b>',
                                             '<b>Cases per 100k</b>',
@@ -287,13 +323,7 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                             '<b>New Deaths</b>'],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
-                          cells={'values':[df['date'].apply(lambda d: d.strftime("%B")),
-                                           df['Cases per 100k'].apply(lambda c:'{:.2f}'.format(c)),
-                                           styleprate_text(df['% New Positive']),
-                                           df['New Tests'],
-                                           df['New Positive'],
-                                           df['Youth Cases'],
-                                           df['New Deaths']],
+                          cells={'values':cell_vals,
                                  'align':'left',
                                  'fill_color':['whitesmoke',
                                                'whitesmoke',
@@ -301,20 +331,25 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                'whitesmoke',
                                                'whitesmoke',
                                                'whitesmoke',
-                                               'whitesmoke'],
-                                 'height':30},
+                                               'whitesmoke']}
                           )
 
+fig = go.Figure(data=monthly_table)
+fig.update_layout(title="This Month vs. Prior Months",
+                  margin = margs,
+                  height= 250)
+monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
 
-fig = make_subplots(rows=4, cols=1,
-                    vertical_spacing=0.1,
-                    horizontal_spacing=0.05,
+
+fig = make_subplots(rows=4, cols=1,                    
+                    vertical_spacing=0.02,                    
                     specs=[[{"type": "table"}],
                            [{"type": "table"}],
                            [{"type": "table"}],
-                           [{"type": "table"}]],
+                           [{"type": "table"}],
+                          ],
                     subplot_titles=('Daily Reports From This Week',
                                     'Day-to-Day Trends',
                                     'This Week vs Prior Weeks',                                    
@@ -325,14 +360,21 @@ fig.add_trace(thisweek_trends,row=2,col=1)
 fig.add_trace(weekly_table,row=3,col=1)
 fig.add_trace(monthly_table,row=4,col=1)
 
-fig.update_layout(title_text="Warren County Daily Dashboard",
-                  #autosize=False,                                    
-                  height=1800,
-                  width=800                  
+fig.update_layout(title_text="Warren County Daily Dashboard",      
+                  height=1400,
+                  width=850,
+                  margin = go.layout.Margin(l=20, #left margin
+                                            r=20, #right margin
+                                            b=10, #bottom margin
+                                            t=50  #top margin
+                                          )
                   )
 
 plot(fig,filename='graphics/WC-Daily.html')
-div = plot(fig, include_plotlyjs=False, output_type='div')
+
+#%%
+
+mdpage = ""
 header = """---
 layout: page
 title: Warren County Daily Report
@@ -342,6 +384,9 @@ permalink: /wcil-daily-report/
 """
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+
+mdpage = header + weekdiv + trenddiv + weeklydiv + monthlydiv
+
 with open('docs/wcilDaily.md','w') as f:
-    f.write(header + "\n\n" + div)
+    f.write(mdpage)
     f.close()
