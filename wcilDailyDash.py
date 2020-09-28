@@ -299,7 +299,7 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 fig = go.Figure(data=weekly_table)
 fig.update_layout(title="This Week vs Prior Weeks",
                   margin = margs,
-                  height= 300)
+                  height= 325)
 weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
     
 
@@ -337,7 +337,7 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 fig = go.Figure(data=monthly_table)
 fig.update_layout(title="This Month vs. Prior Months",
                   margin = margs,
-                  height= 250)
+                  height= 275)
 monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
