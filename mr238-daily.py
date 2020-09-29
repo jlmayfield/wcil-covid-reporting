@@ -200,7 +200,8 @@ all_the_days = schooldaily(tests_wchd, demo_wchd)
 #all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
 # get week start date
-this_sunday = pd.to_datetime(pd.to_datetime('today') - pd.offsets.Week(weekday=6)).date()
+today = pd.to_datetime('today')
+this_sunday = pd.to_datetime(today - pd.offsets.Week(weekday=6)).date() if today.dayofweek != 6 else today.date() 
 
 
 # weekly numbers for this week and two prior
@@ -208,7 +209,13 @@ threeweeks = schoolweekly(all_the_days,nweeks=1).iloc[-3:]
 # daily numbers for the current week
 this_week = all_the_days.loc[this_sunday:]
 
+ndays = len(this_week)
 
+margs = go.layout.Margin(l=0, #left margin
+                         r=0, #right margin
+                         b=0, #bottom margin
+                         t=25  #top margin
+                         )                          
 
 #%%
 
@@ -231,6 +238,13 @@ thisweek = go.Table(header={'values':['<b>Date</b>',
                                     'height': 30 }
                            )
 
+fig = go.Figure(data=thisweek)
+fig.update_layout(title="This Week",
+                  margin = margs,
+                  height= (ndays*40 + 150))
+weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
+
+
 #%%
 
 df = threeweeks.reset_index().sort_values('date',ascending=False)
@@ -240,7 +254,7 @@ vals = [df['date'].apply(lambda d: d.strftime("%B %d")),
         stylestreak_text(df['Consecutive Case Increases']),
         styleyouth_text(df[['Youth Cases','Consecutive Youth Increases']])]        
 # style current week to flag provisional data
-vals[0].iloc[0] = '<i>' + vals[0].iloc[0] + '<i>' + '<sup><b>**</b></sup>'
+vals[0].iloc[0] = '<i>' + vals[0].iloc[0] + '<i>' 
 # cell colors
 clrs = ['whitesmoke',
         styleprate_cell(df['% New Positive']),
@@ -250,7 +264,7 @@ clrs = ['whitesmoke',
 weekly_table = go.Table(header={'values':['<b>Week Start Date</b>',
                                           '<b>Positivity Rate</b>',
                                           '<b>New Cases<br>per 100k (actual)</b>',                                                                                     
-                                          '<b>Consecutive Weeks of<br>New Case Increases</b>',
+                                          '<b>Consecutive Weeks<br>New Case Increases</b>',
                                           '<b>Youth Cases<br>Current (Increases)</b>',
                                           ],
                                  'align':'left',
@@ -259,6 +273,13 @@ weekly_table = go.Table(header={'values':['<b>Week Start Date</b>',
                                  'align': 'left',
                                  'fill_color': clrs,
                                  'height':30})
+
+fig = go.Figure(data=weekly_table)
+fig.update_layout(title="Weekly Metrics",
+                  margin = margs,
+                  height= 250)
+weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
+    
 
 #%%
 
@@ -276,7 +297,39 @@ fig.update_layout(title_text="MR-238 Daily Dashboard",
                   height=800)
 
 plot(fig,filename='graphics/MR238-Daily.html')
-div = plot(fig, include_plotlyjs=False, output_type='div')
+#div = plot(fig, include_plotlyjs=False, output_type='div')
+#with open('mr238/MR238-Daily.txt','w') as f:
+#    f.write(div)
+#    f.close()
+
+#%%
+
+
+mdpage = ""
+header = """---
+layout: page
+title: MR 238 COVID-19 Metric Report
+permalink: /mr238-metrics/
+---
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+"""
+htmlblock = '{::options parse_block_html="true" /}\n\n'
+timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
+header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+mdpage = header + weeklydiv + '\n\n' + weekdiv  
+
 with open('mr238/MR238-Daily.txt','w') as f:
-    f.write(div)
+    f.write(weeklydiv + '\n\n' + weekdiv)
     f.close()
+    
+#with open('mr238/03-explanations.md','r') as f:
+#    with open('mr238/MR238Report.md','a',newline='') as g: 
+#        g.write(f.read())
+#        g.close()
+#    f.close()
+    
+
+
+    
