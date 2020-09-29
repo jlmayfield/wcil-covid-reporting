@@ -59,7 +59,7 @@ data_idph = pd.read_csv('ILDPH_Reports.csv',
 
 
 #%%
-start_date = pd.to_datetime('2020-09-13')
+start_date = pd.to_datetime('2020-09-20')
 end_date = pd.to_datetime('2020-09-26') #+ pd.Timedelta(1,unit='D')
 
 full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
@@ -135,10 +135,11 @@ fig = go.Figure(data=[
            showlegend=False)    
     ])
 
-fig.update_layout(barmode='stack')
+fig.update_layout(barmode='stack',
+                  title='Test Result Source Data Comparison')
 
 
-plot(fig,filename='graphics/temp.html')
+plot(fig,filename='graphics/source-comparison.html')
 
 
 
