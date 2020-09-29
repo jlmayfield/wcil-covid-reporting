@@ -173,17 +173,24 @@ all_the_days = daily(tests_wchd, demo_wchd)
 # 1 day lag between state attribution and public release
 #all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
-# get week start date
+
+ndays = 10 # fixed at 10 for now
+
+# get window dates
 today = pd.to_datetime('today')
-this_sunday = pd.to_datetime(today - pd.offsets.Week(weekday=6)).date() if today.dayofweek != 6 else today.date() 
+tenago = today - pd.Timedelta(ndays,unit='D')
 
-
-this_week = all_the_days.loc[this_sunday:]
+# 10 days 
+dailywindow = all_the_days.loc[tenago:]
+# this week + 4
 fiveweeks = weekly(all_the_days,nweeks=1).iloc[-5:]
+# this week + 2
 threemonths = monthly(all_the_days).iloc[-3:]
 
-ndays = len(this_week)
 
+# %%
+
+# site table margins
 margs = go.layout.Margin(l=0, #left margin
                          r=0, #right margin
                          b=0, #bottom margin
@@ -192,9 +199,8 @@ margs = go.layout.Margin(l=0, #left margin
 
 #%%
 
-df = this_week.reset_index().sort_values('date',ascending=False)
-thisweek_table1 = go.Table(#columnwidth = [10,10,10,10,10,10,10],
-                           header={'values':['<b>Date</b>',
+df = dailywindow.reset_index().sort_values('date',ascending=False)
+daily = go.Table(header={'values':['<b>Date</b>',
                                             '<b>New Tests</b>',
                                             '<b>New Cases</b>',
                                             '<b>New Cases per 100k</b>',
@@ -220,16 +226,17 @@ thisweek_table1 = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                 ],
                                   })
 
-fig = go.Figure(data=thisweek_table1)
+fig = go.Figure(data=daily)
 fig.update_layout(title="Daily Case Reports",
                   margin = margs,
-                  height= (ndays*40 + 150))
+                  height= (ndays*50 + 100)
+                  )
 weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 
 #%%
 
-thisweek_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
+daily_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                            header={'values':['<b>Date</b>',
                                             '<b>Day-to-Day Increases<br><em>New Cases</em><br>10 day Window</b>',                                            
                                             '<b>Day-to-Day Increases<br><em>Youth Cases</em><br>10 day Window</b>',                                            
@@ -254,10 +261,11 @@ thisweek_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                   })
 
 
-fig = go.Figure(data=thisweek_trends)
+fig = go.Figure(data=daily_trends)
 fig.update_layout(title="Daily Trends",
                   margin = margs,
-                  height= (ndays*40 + 150))
+                  height= (ndays*50 + 100)
+                  )
 trenddiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 
@@ -299,7 +307,8 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 fig = go.Figure(data=weekly_table)
 fig.update_layout(title="This Week vs Prior Weeks",
                   margin = margs,
-                  height= 325)
+                  height= 275
+                  )
 weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
     
 
@@ -337,7 +346,8 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 fig = go.Figure(data=monthly_table)
 fig.update_layout(title="This Month vs. Prior Months",
                   margin = margs,
-                  height= 275)
+                  height= 225
+                  )
 monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
@@ -350,13 +360,13 @@ fig = make_subplots(rows=4, cols=1,
                            [{"type": "table"}],
                            [{"type": "table"}],
                           ],
-                    subplot_titles=('Daily Reports From This Week',
-                                    'Day-to-Day Trends',
+                    subplot_titles=('Daily Reports (10 Day Window)',
+                                    'Day-to-Day Trends (10 Day Window)',
                                     'This Week vs Prior Weeks',                                    
                                     'This Month vs. Prior Months'))
 
-fig.add_trace(thisweek_table1,row=1,col=1)
-fig.add_trace(thisweek_trends,row=2,col=1)
+fig.add_trace(daily,row=1,col=1)
+fig.add_trace(daily_trends,row=2,col=1)
 fig.add_trace(weekly_table,row=3,col=1)
 fig.add_trace(monthly_table,row=4,col=1)
 
