@@ -21,7 +21,7 @@ author:
   name:           'Logan Mayfield'
   url:            https://jlmayfield.github.io
 
-paginate:         5
+paginate:         1
 
 # Custom vars
 version:          1.0.0
