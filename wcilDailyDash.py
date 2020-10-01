@@ -205,7 +205,8 @@ daily = go.Table(header={'values':['<b>Date</b>',
                                             '<b>New Cases</b>',
                                             '<b>New Cases per 100k</b>',
                                             '<b>Positivity Rate</b>',
-                                            '<b>Youth Cases</b>'
+                                            '<b>Youth Cases</b>',
+                                            '<b>New Deaths</b>'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
@@ -214,7 +215,8 @@ daily = go.Table(header={'values':['<b>Date</b>',
                                             df['New Positive'],                                                                                        
                                             df['Cases per 100k'].apply(lambda c:'{:.1f}'.format(c)),
                                             styleprate_text(df['% New Positive']),                                            
-                                            df['Youth Cases']
+                                            df['Youth Cases'],
+                                            df['New Deaths']
                                             ],                                            
                                   'align':'left',
                                   'fill_color':['whitesmoke',
@@ -222,6 +224,7 @@ daily = go.Table(header={'values':['<b>Date</b>',
                                                 'whitesmoke',
                                                 'whitesmoke',
                                                 styleprate_cell(df['% New Positive']),                                                
+                                                'whitesmoke',
                                                 'whitesmoke'
                                                 ],
                                   })
@@ -229,7 +232,7 @@ daily = go.Table(header={'values':['<b>Date</b>',
 fig = go.Figure(data=daily)
 fig.update_layout(title="Daily Case Reports",
                   margin = margs,
-                  height= (ndays*50 + 100)
+                  height= (ndays*60 + 150)
                   )
 weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
 
@@ -264,7 +267,7 @@ daily_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 fig = go.Figure(data=daily_trends)
 fig.update_layout(title="Daily Trends",
                   margin = margs,
-                  height= (ndays*50 + 100)
+                  height= (ndays*45 + 100)
                   )
 trenddiv = plot(fig, include_plotlyjs=False, output_type='div')
 
@@ -279,6 +282,7 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                             '<b>New Tests</b>',
                                             '<b>New Cases</b>',
                                             '<b>Youth Cases</b>',
+                                            '<b>New Deaths</b>'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
@@ -291,7 +295,8 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                               'New Positive Change']]),
                                            stylecase_text(df[['Youth Cases',
                                                               'Consecutive Youth Increases',
-                                                              'New Youth Change']])
+                                                              'New Youth Change']]),
+                                           df['New Deaths']                                                          
                                            ],
                                  'align':'left',
                                  'fill_color':
@@ -301,13 +306,14 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                       'whitesmoke',
                                       stylecase_cell(df['Consecutive Case Increases']),
                                       stylecase_cell(df['Consecutive Youth Increases']),
+                                      'whitesmoke'
                                       ]
                                  })
 
 fig = go.Figure(data=weekly_table)
 fig.update_layout(title="This Week vs Prior Weeks",
                   margin = margs,
-                  height= 275
+                  height= 350
                   )
 weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
     
@@ -346,7 +352,7 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
 fig = go.Figure(data=monthly_table)
 fig.update_layout(title="This Month vs. Prior Months",
                   margin = margs,
-                  height= 225
+                  height= 250
                   )
 monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
