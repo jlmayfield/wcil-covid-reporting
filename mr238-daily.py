@@ -233,7 +233,7 @@ thisweek = go.Table(header={'values':['<b>Date</b>',
                                     'align':'left',
                                     'fill_color':['whitesmoke',
                                                   styleprate_cell(df['% New Positive']),
-                                                  'whitesmoke',
+                                                  stylecp100k_cell(df['Cases per 100k']),
                                                   'whitesmoke'],
                                     'height': 30 }
                            )
