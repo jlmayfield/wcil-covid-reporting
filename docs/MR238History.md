@@ -1,3 +1,16 @@
+---
+layout: page
+title: MR238 - Historical Report
+permalink: /mr238/history/
+---
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<p><small>last updated:  16:33 2020-10-08</small><p>
+
+
+
+
 <div>
         
         

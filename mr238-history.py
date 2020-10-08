@@ -249,19 +249,43 @@ weekly_table = go.Table(header={'values':['<b>Week Start Date</b>',
 
 #%%
 
-fig = make_subplots(rows=1, cols=1,
-                    vertical_spacing=0.1,
-                    #horizontal_spacing=0.05,
-                    specs=[[{"type": "table"}]])
+fig = go.Figure(data=weekly_table)
 
-#fig.add_trace(thisweek,row=2,col=1)
-fig.add_trace(weekly_table,row=1,col=1)
+fig.update_layout(title_text="MR-238 Metric History",
+                  margin = go.layout.Margin(l=0, #left margin
+                                            r=0, #right margin
+                                            b=0, #bottom margin
+                                            t=25  #top margin
+                                            ),
+                  height=1000,
+                  width=650
+                  )
 
-fig.update_layout(title_text="MR-238 Metric History",                  
-                  height=1000)
 
 plot(fig,filename='graphics/MR238-Historical.html')
 div = plot(fig, include_plotlyjs=False, output_type='div')
 with open('mr238/MR238-Historical.txt','w') as f:
     f.write(div)
+    f.close()
+
+
+#%%
+
+mdpage = ""
+header = """---
+layout: page
+title: MR238 - Historical Report
+permalink: /mr238/history/
+---
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+"""
+
+timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
+header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+mdpage = header + '\n\n\n' + div
+
+with open('docs/MR238History.md','w') as f:
+    f.write(mdpage)
     f.close()
