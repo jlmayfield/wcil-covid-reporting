@@ -180,7 +180,7 @@ ndays = 10 # fixed at 10 for now
 today = pd.to_datetime('today')
 last_day = all_the_days.index[-1]
 
-tenago = last_day - pd.Timedelta(ndays,unit='D')
+tenago = last_day - pd.Timedelta(ndays-1,unit='D')
 
 # 10 days 
 dailywindow = all_the_days.loc[tenago:]
