@@ -264,9 +264,9 @@ fig.update_layout(title_text="MR-238 Metric History",
 
 plot(fig,filename='graphics/MR238-Historical.html')
 div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('mr238/MR238-Historical.txt','w') as f:
-    f.write(div)
-    f.close()
+#with open('mr238/MR238-Historical.txt','w') as f:
+#    f.write(div)
+#    f.close()
 
 
 #%%
@@ -286,6 +286,7 @@ timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 mdpage = header + '\n\n\n' + div
 
-with open('docs/MR238History.md','w') as f:
-    f.write(mdpage)
-    f.close()
+if today.dayofweek == 6:
+    with open('docs/MR238History.md','w') as f:
+        f.write(mdpage)
+        f.close()
