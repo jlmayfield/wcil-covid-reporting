@@ -151,8 +151,10 @@ aoi = cvda.expandUSFData(aoi, population)
 lastday_actual = aoi.index.get_level_values('date').unique()[-1]
 # weekly totals (all time) - Saturday to Friday Basis
 weekly = aoi[['New Positive']].groupby([pd.Grouper(level='date',                     
-                                                         freq='W-FRI',
-                                                         label="right"),
+                                                         freq='W-SUN',
+                                                         label="right",
+                                                         closed='left',                                                         
+                                                         ),
                                         pd.Grouper(level='countyFIPS')]).sum()
 lastday = weekly.index.get_level_values('date').unique()[-1]
 d = weekly.loc[lastday,:]
@@ -235,8 +237,9 @@ plot(fig,filename='graphics/Region-NewCases-ThreeWeeks.html')
 
 lastday_actual = aoi.index.get_level_values('date').unique()[-1]
 weekly = aoi[['New Positive per 100k']].groupby([pd.Grouper(level='date',                     
-                                                     freq='W-FRI',
-                                                     label="right"),
+                                                     freq='W-SUN',
+                                                     label="right",
+                                                     closed='left'),
                                         pd.Grouper(level='countyFIPS')]).sum()
 lastday = weekly.index.get_level_values('date').unique()[-1]
 d = weekly.loc[lastday,:]
