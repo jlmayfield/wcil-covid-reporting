@@ -108,41 +108,107 @@ weeks['Positivity'] = weeks['New Positive'] / weeks['New Tests']
 
 #%%
 
-days = [ str(d.date()) for d in tests_wchd.index]
+days = [ d.strftime('%m/%d') for d in tests_wchd.index]
 fig = go.Figure(data=[
     go.Bar(name='Positive',
            x=[days,['WCHD']*len(days)],
            y=tests_wchd['New Positive'],
-           marker_color='red'),
+           marker_color='salmon'),
     go.Bar(name='Negative',
            x=[days,['WCHD']*len(days)],
            y=tests_wchd['New Negative'],
-           marker_color='blue'),
+           marker_color='deepskyblue'),
     go.Bar(name='Positive',
            x=[days,['IDPH']*len(days)],
            y=tests_idph['New Positive'],
-           marker_color='red',
+           marker_color='salmon',
            showlegend=False),
     go.Bar(name='Negative',
            x=[days,['IDPH']*len(days)],
            y=tests_idph['New Negative'],
-           marker_color='blue',
+           marker_color='deepskyblue',
            showlegend=False),
     go.Bar(name='Positive',
            x=[days,['USAFacts']*len(days)],
            y=tests_usaf['New Positive'],
-           marker_color='red',
+           marker_color='salmon',
            showlegend=False)    
     ])
 
 fig.update_layout(barmode='stack',
                   title='Test Result Source Data Comparison')
+                  
 
 
 plot(fig,filename='graphics/source-comparison.html')
 
 
+#%%
 
+df = weeks.reset_index()
+idph = df[df['source']=='IDPH']
+wchd = df[df['source']=='WCHD']
+days = [ d.strftime('%m/%d') for d in df['date'] ][:len(df)//2]
 
+fig = go.Figure(data=[
+    go.Bar(name='Positive',
+           x=[days,['WCHD']*len(days)],
+           y=wchd['New Positive'],
+           marker_color='salmon'),
+    go.Bar(name='Negative',
+           x=[days,['WCHD']*len(days)],
+           y=wchd['New Negative'],
+           marker_color='deepskyblue'),
+    go.Bar(name='Positive',
+           x=[days,['IDPH']*len(days)],
+           y=idph['New Positive'],
+           marker_color='salmon',
+           showlegend=False),
+    go.Bar(name='Negative',
+           x=[days,['IDPH']*len(days)],
+           y=idph['New Negative'],
+           marker_color='deepskyblue',
+           showlegend=False)    
+    ])
+fig.update_layout(barmode='stack',
+                  title='Weekly Test Results: IDPH vs WCHD')
+plot(fig,filename='graphics/weekly-comparison.html')
 
+#%%
+
+npdays = weeks.index.get_level_values('date').unique()
+vals =[ [i for p in [[d,''] for d in npdays] for i in p],
+        [i for p in [['WCHD','IDPH'] for d in days] for i in p],
+        ["{:.1f}".format(i) for p in [[weeks.loc['WCHD',d]['per 100k'],
+                      weeks.loc['IDPH',d]['per 100k']] for d in npdays]
+         for i in p],
+        ["{:.1%}".format(i) for p in [[weeks.loc['WCHD',d]['Positivity'],
+                                       weeks.loc['IDPH',d]['Positivity']] for d in npdays]
+         for i in p],
+        [i for p in [[weeks.loc['WCHD',d]['New Tests'],
+                      weeks.loc['IDPH',d]['New Tests']] for d in npdays]
+         for i in p],
+        [i for p in [[weeks.loc['WCHD',d]['New Positive'],
+                      weeks.loc['IDPH',d]['New Positive']] for d in npdays]
+         for i in p]
+        ]
+
+weekly_table = go.Table(header={'values':['<b>Week Start Date</b>',
+                                          '<b>Agency</b>',
+                                          '<b>Cases per 100k</b>',
+                                          '<b>Positivity Rate</b>',
+                                          '<b>New Tests</b>',
+                                          '<b>New Cases</b>'],
+                                  'align':'left',
+                                  'fill_color':'gainsboro'},
+                          cells={'values':vals,
+                                 'align':'left',
+                                 'fill_color':['whitesmoke',
+                                               'whitesmoke',
+                                               'whitesmoke',
+                                               'whitesmoke',
+                                               'whitesmoke',                                               
+                                               'whitesmoke']}
+                          )
+plot(go.Figure(data=weekly_table),filename='graphics/weekly-comparison-table.html')
 
