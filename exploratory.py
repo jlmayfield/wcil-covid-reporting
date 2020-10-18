@@ -117,6 +117,10 @@ by_day = daily(full_tests_wchd,demo_wchd,population)
 by_week = weekly(by_day).iloc[3:]
 by_month = monthly(by_day)
 
+#%%
+full_cases_usaf = cvdp.prepusafacts(cases)
+aoi = [17187,17095,17109]
+aoi_cases_usaf = cvda.expandUSFData(full_cases_usaf.loc[:,:,aoi], population)
 
 #%%
 
