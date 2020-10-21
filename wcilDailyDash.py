@@ -8,128 +8,29 @@ Created on Thu Sep 17 10:24:53 2020
 
 
 import pandas as pd
-import numpy as np
 
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from plotly.offline import plot
 
-from urllib.request import urlopen
-import json
-with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
-    counties = json.load(response)
-
-MB_TOKEN = open(".mapbox_token").read()
 
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
+import cvdataviz as cvdv
 
-population = pd.read_csv('covid_county_population_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,
-                                'County Name':str, 'State':str,
-                                'population':np.int64},
-                         index_col = 'countyFIPS')
-
-cases = pd.read_csv('covid_confirmed_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
-                                'County Name':str, 'State':str,
-                                'date': np.datetime64},
-                         index_col = 'countyFIPS')
+#%%
 
 
-# !Unknown values filled in with zeros (early reports were incomplete)
-reports_wchd = pd.read_csv('WCHD_Reports.csv',
-                         header=[0],index_col=0,
-                         parse_dates=True).fillna(0)
+population,cases = cvdp.loadusafacts()
+reports_wchd,demo_wchd,_ = cvdp.loadwchd()
 
-demo_wchd = pd.read_csv('WCHD_Case_Demographics.csv',
-                       skiprows=[2],
-                       header=[0,1],index_col=0,
-                       parse_dates=True).fillna(0).iloc[:,0:12]
 
 tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 # from IL DPH site based on cases vs casesper100k data
 p = 16981
 
 
-
 #%%
-# '#3498DB'
-RISK_COLORS = {'Minimal':'whitesmoke','Moderate':'rgba(255,215,0,0.5)','Substantial':'rgba(205,92,92,0.5)'}
-
-
-def stylecp100k_cell(cp100k):
-    def val2color(val):
-        if round(val) <= 50:
-            return RISK_COLORS['Minimal']
-        elif round(val) <= 100:
-            return RISK_COLORS['Moderate']
-        else:
-            return RISK_COLORS['Substantial']
-    return [val2color(v) for v in cp100k]
-
-def stylecp100k_text(cp100k):
-    def val2txt(val):
-        if round(val) <= 50:
-            return "{:.1f}".format(val)
-        else:
-            return "<b>{:.1f}<b>".format(val)
-    return [val2txt(v) for v in cp100k]
-
-def styleprate_cell(prates):
-    def val2color(val):
-        if val <= .05:
-            return RISK_COLORS['Minimal']
-        elif val <= .08:
-            return RISK_COLORS['Moderate']
-        else:
-            return RISK_COLORS['Substantial']
-    return [val2color(v) for v in prates]
-
-def styleprate_text(prates):
-    def val2txt(val):
-        if val <= .05:
-            return "{:.1%}".format(val)
-        else:
-            return "<b>{:.1%}<b>".format(val)
-    return [val2txt(v) for v in prates]
-
-def stylecase_text(cases_streak):
-    def val2txt(i):
-        streak = cases_streak.loc[i][1]
-        val = round(cases_streak.loc[i][0])
-        chg = cases_streak.loc[i][2]
-        if np.isinf(chg):
-            return"{:<6} (+)".format(val)
-        if np.isnan(chg):
-            return"{:<6} (None)".format(val)
-        elif streak < 2:
-            return "{:<6} ({:+.1%})".format(val,chg)
-        else:
-            return "<b>{:<6} ({:+.1%})</b>".format(val,chg)
-    return [val2txt(i) for i in cases_streak.index]
-
-def stylecase_cell(cases_streak):
-    def val2color(val):
-        if val < 2:
-            return RISK_COLORS['Minimal']
-        else:
-            return "rgba(255, 140, 0, 0.5)"
-    return [val2color(v) for v in cases_streak]
-
-
-
-#%%
-
-def increased(col):
-    return (col.diff() > 0).astype(int)
-
-def increase_streak(col):
-    did_increase = increased(col)
-    tot_increase = did_increase.cumsum()
-    offsets = tot_increase.mask(did_increase != 0).ffill()
-    streaks = (tot_increase - offsets).astype(int)
-    return streaks.rename(col.name + " Increase Streak")
 
 
 def daily(wchd_data,wchd_demo):
@@ -138,9 +39,9 @@ def daily(wchd_data,wchd_demo):
     wcil = wchd_data.loc[:,17,17187][keepers]
     wcil['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
     wcil['Cases per 100k'] = wcil['New Positive'] * 100000 / p
-    wcil['Case Increases in 10 days'] = increased(wcil['New Positive']).rolling(10,min_periods=0).sum().astype(int)
-    wcil['Youth Increases in 10 days'] = increased(wcil['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
-    wcil['Positivity Rate Increases in 10 days'] = increased(wcil['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
+    wcil['Case Increases in 10 days'] = cvda._increasesInNDays(wcil['New Positive'],10)
+    wcil['Youth Increases in 10 days'] = cvda._increasesInNDays(wcil['Youth Cases'],10)
+    wcil['Positivity Rate Increases in 10 days'] = cvda._increasesInNDays(wcil['% New Positive'],10)
     return wcil
 
 def weekly(daily,nweeks=1):
@@ -153,8 +54,8 @@ def weekly(daily,nweeks=1):
     wcil['% New Positive'] = wcil['New Positive']/wcil['New Tests']
     wcil['New Positive Change'] = wcil['New Positive'].pct_change()
     wcil['New Youth Change'] = wcil['Youth Cases'].pct_change()
-    wcil['Consecutive Case Increases'] = increase_streak(wcil['New Positive'])
-    wcil['Consecutive Youth Increases'] = increase_streak(wcil['Youth Cases'])
+    wcil['Consecutive Case Increases'] = cvda._increaseStreak(wcil['New Positive'])
+    wcil['Consecutive Youth Increases'] = cvda._increaseStreak(wcil['Youth Cases'])
     return wcil
 
 def monthly(daily):
@@ -170,8 +71,6 @@ def monthly(daily):
 #%%
 
 all_the_days = daily(tests_wchd, demo_wchd)
-# 1 day lag between state attribution and public release
-#all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
 
 
 ndays = 10 # fixed at 10 for now
@@ -204,29 +103,23 @@ margs = go.layout.Margin(l=0, #left margin
 df = dailywindow.reset_index().sort_values('date',ascending=False)
 daily = go.Table(header={'values':['<b>Date</b>',
                                             '<b>New Tests</b>',
-                                            '<b>New Cases</b>',
-                                            '<b>New Cases per 100k</b>',
-                                            '<b>Positivity Rate</b>',
-                                            '<b>Youth Cases</b>',
+                                            '<b>New Cases (per 100k)</b>',                                           
+                                            '<b>Positivity Rate</b>',                                           
                                             '<b>New Deaths</b>'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                            cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
                                             df['New Tests'],
-                                            df['New Positive'],                                                                                        
-                                            df['Cases per 100k'].apply(lambda c:'{:.1f}'.format(c)),
-                                            styleprate_text(df['% New Positive']),                                            
-                                            df['Youth Cases'],
+                                            cvdv.style_casenum(df[['New Positive','Cases per 100k']]),
+                                            cvdv.styleprate_text(df['% New Positive']),
                                             df['New Deaths']
                                             ],                                            
                                   'align':'left',
                                   'fill_color':['whitesmoke',
                                                 'whitesmoke',
-                                                'whitesmoke',
-                                                'whitesmoke',
-                                                styleprate_cell(df['% New Positive']),                                                
-                                                'whitesmoke',
+                                                cvdv.stylecp100k_cell(df['Cases per 100k']),                                                                                                
+                                                cvdv.styleprate_cell(df['% New Positive']),                                                
                                                 'whitesmoke'
                                                 ],
                                   })
@@ -237,6 +130,9 @@ fig.update_layout(title="Daily Case Reports",
                   height= (ndays*60 + 150)
                   )
 weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
+
+#%%
+
 
 
 #%%
@@ -253,14 +149,14 @@ daily_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                            cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),                                            
                                             df['Case Increases in 10 days'],
                                             df['Youth Increases in 10 days'],
-                                            styleprate_text(df['7 Day Avg % New Positive']),
+                                            cvdv.styleprate_text(df['7 Day Avg % New Positive']),
                                              df['Positivity Rate Increases in 10 days']
                                            ],
                                   'align':'left',
                                   'fill_color':['whitesmoke',
                                                 'whitesmoke',
                                                 'whitesmoke',
-                                                styleprate_cell(df['7 Day Avg % New Positive']),
+                                                cvdv.styleprate_cell(df['7 Day Avg % New Positive']),
                                                 'whitesmoke'
                                                 ],
                                   })
@@ -289,13 +185,13 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                           cells={'values':[df['date'].apply(lambda d: d.strftime("%B %d")),
-                                           stylecp100k_text(df['Cases per 100k']),
-                                           styleprate_text(df['% New Positive']),
+                                           cvdv.stylecp100k_text(df['Cases per 100k']),
+                                           cvdv.styleprate_text(df['% New Positive']),
                                            df['New Tests'],
-                                           stylecase_text(df[['New Positive',
+                                           cvdv.stylecase_text(df[['New Positive',
                                                               'Consecutive Case Increases',
                                                               'New Positive Change']]),
-                                           stylecase_text(df[['Youth Cases',
+                                           cvdv.stylecase_text(df[['Youth Cases',
                                                               'Consecutive Youth Increases',
                                                               'New Youth Change']]),
                                            df['New Deaths']                                                          
@@ -303,11 +199,11 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                  'align':'left',
                                  'fill_color':
                                      ['whitesmoke',
-                                      stylecp100k_cell(df['Cases per 100k']),
-                                      styleprate_cell(df['% New Positive']),
+                                      cvdv.stylecp100k_cell(df['Cases per 100k']),
+                                      cvdv.styleprate_cell(df['% New Positive']),
                                       'whitesmoke',
-                                      stylecase_cell(df['Consecutive Case Increases']),
-                                      stylecase_cell(df['Consecutive Youth Increases']),
+                                      cvdv.stylecase_cell(df['Consecutive Case Increases']),
+                                      cvdv.stylecase_cell(df['Consecutive Youth Increases']),
                                       'whitesmoke'
                                       ]
                                  })
@@ -325,7 +221,7 @@ weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
 df = threemonths.reset_index().sort_values('date',ascending=False)
 cell_vals = [df['date'].apply(lambda d: d.strftime("%B")),
              df['Cases per 100k'].apply(lambda c:'{:.1f}'.format(c)),
-             styleprate_text(df['% New Positive']),
+             cvdv.styleprate_text(df['% New Positive']),
              df['New Tests'],
              df['New Positive'],
              df['Youth Cases'],
@@ -344,7 +240,7 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                  'align':'left',
                                  'fill_color':['whitesmoke',
                                                'whitesmoke',
-                                               styleprate_cell(df['% New Positive']),
+                                               cvdv.styleprate_cell(df['% New Positive']),
                                                'whitesmoke',
                                                'whitesmoke',
                                                'whitesmoke',

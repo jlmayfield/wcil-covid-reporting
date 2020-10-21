@@ -84,6 +84,30 @@ def _sevenDayAvg(column):
     sda = column.to_frame().groupby(level=['countyFIPS']).apply(roller)
     return sda[column.name].rename(name)
 
+def _sevenDayPRate(testdata):
+    name = 'Positive Test Rate 7 Day Window'
+    def roller(grp):
+        return grp.rolling(7,min_periods=1).sum()
+    tots = testdata.groupby(level=['countyFIPS']).apply(roller)
+    rates = tots['New Positive']/tots['New Tests']
+    return rates.rename(name)
+
+def _increasesInNDays(column,N):
+    def increased(col):
+        return (col.diff() > 0).astype(int)    
+    name = column.name + ' Increase in {:d} Days'.format(N)
+    ups = increased(column).rolling(N,min_periods=0).sum().astype(int)
+    return ups.rename(name)
+
+def _increaseStreak(col):
+    def increased(col):
+        return (col.diff() > 0).astype(int) 
+    did_increase = increased(col)
+    tot_increase = did_increase.cumsum()
+    offsets = tot_increase.mask(did_increase != 0).ffill()
+    streaks = (tot_increase - offsets).astype(int)
+    return streaks.rename(col.name + " Increase Streak")                    
+
 def _per100k(column,pop):
     '''
     Returns a generator for per100k 
@@ -153,16 +177,19 @@ def expandWCHDData(raw_wchd_data):
                           _newposrate(expanded)],
                          axis=1)
     expanded = pd.concat([expanded,
-                          _sevenDayAvg(expanded['% New Positive'])],
+                          _sevenDayAvg(expanded['% New Positive']),
+                          _sevenDayPRate(expanded[['New Tests','New Positive']])],
                           axis = 1)
     cols = ['DayOfWeek','Phase',
             'New Tests', 'New Positive','New Negative',
-            '% New Positive','7 Day Avg % New Positive', 
+            '% New Positive','7 Day Avg % New Positive','Positive Test Rate 7 Day Window',
             'New Recovered','New Deaths','Active Cases',
             'Total Tests','Total Positive','Total Negative',
             'Total Recovered','Total Deaths', 'Region 2 Pos Rate'
             ]
     return expanded[cols]
+
+
 
 #%%
 
