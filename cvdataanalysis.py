@@ -144,7 +144,7 @@ def _per100k(column,pop):
 #%%
 
 
-def expandWCHDData(raw_wchd_data):
+def expandWCHDData(raw_wchd_data,pop=17032):
     """
     Expand upon raw data set.
 
@@ -152,11 +152,13 @@ def expandWCHDData(raw_wchd_data):
     ----------
     raw_wchd_data : DataFrame
         Data from WCHD/IL DPH - New Postive, Total Negative, Total Recovered, and
-        New Deaths, Region 2 Pos Rate        
+        New Deaths, Region 2 Pos Rate      
+    pop : int
+        Population of Warren County, IL. Default 17032.
 
     Returns
     -------
-    None.
+    DataFrame. Expanded daily dataset for WCIL
 
     """
     expanded = pd.concat([raw_wchd_data,
@@ -178,11 +180,15 @@ def expandWCHDData(raw_wchd_data):
                          axis=1)
     expanded = pd.concat([expanded,
                           _sevenDayAvg(expanded['% New Positive']),
+                          _sevenDayAvg(expanded['New Positive']),
                           _sevenDayPRate(expanded[['New Tests','New Positive']])],
                           axis = 1)
+    expanded['New Positive per 100k'] = expanded['New Positive'] * 100000 / pop
     cols = ['DayOfWeek','Phase',
             'New Tests', 'New Positive','New Negative',
-            '% New Positive','7 Day Avg % New Positive','Positive Test Rate 7 Day Window',
+            'New Positive per 100k', '% New Positive',
+            '7 Day Avg New Positive','7 Day Avg % New Positive',
+            'Positive Test Rate 7 Day Window',
             'New Recovered','New Deaths','Active Cases',
             'Total Tests','Total Positive','Total Negative',
             'Total Recovered','Total Deaths', 'Region 2 Pos Rate'

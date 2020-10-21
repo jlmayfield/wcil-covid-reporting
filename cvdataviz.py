@@ -49,7 +49,7 @@ def style_casenum(cdata):
     """
     def val2txt(vals):
         act = vals['New Positive']
-        p100k = vals['Cases per 100k']
+        p100k = vals['New Positive per 100k']
         text = "{:.0f} ({:.1f})".format(act,p100k)
         if p100k > 50:
             text = '<b>'+text+'</b>'

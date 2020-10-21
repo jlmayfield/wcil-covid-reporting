@@ -70,19 +70,19 @@ def monthly(daily):
 
 #%%
 
-all_the_days = daily(tests_wchd, demo_wchd)
-
+wcil = tests_wchd.loc[:,17,17187]
 
 ndays = 10 # fixed at 10 for now
-
 # get window dates
 today = pd.to_datetime('today')
-last_day = all_the_days.index[-1]
-
+last_day = wcil.index[-1]
 tenago = last_day - pd.Timedelta(ndays-1,unit='D')
 
 # 10 days 
-dailywindow = all_the_days.loc[tenago:]
+dailywindow = wcil.loc[tenago:]
+
+#%%
+#all_the_days = daily(tests_wchd, demo_wchd)
 # this week + 4
 fiveweeks = weekly(all_the_days,nweeks=1).iloc[-5:]
 # this week + 2
@@ -111,14 +111,14 @@ daily = go.Table(header={'values':['<b>Date</b>',
                                   'fill_color':'gainsboro'},
                            cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
                                             df['New Tests'],
-                                            cvdv.style_casenum(df[['New Positive','Cases per 100k']]),
+                                            cvdv.style_casenum(df[['New Positive','New Positive per 100k']]),
                                             cvdv.styleprate_text(df['% New Positive']),
                                             df['New Deaths']
                                             ],                                            
                                   'align':'left',
                                   'fill_color':['whitesmoke',
                                                 'whitesmoke',
-                                                cvdv.stylecp100k_cell(df['Cases per 100k']),                                                                                                
+                                                cvdv.stylecp100k_cell(df['New Positive per 100k']),                                                                                                
                                                 cvdv.styleprate_cell(df['% New Positive']),                                                
                                                 'whitesmoke'
                                                 ],
