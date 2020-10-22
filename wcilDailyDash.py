@@ -133,7 +133,41 @@ weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
 
+# plot 4 weeks of new case averages and positivity averages
 
+threeweeks = wcil.iloc[-28:]
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg New Positive'],
+               name="New Cases (7 day avg)"),               
+    secondary_y=False,
+)
+
+fig.add_trace(
+    go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg % New Positive'],
+               name="Positivity (7 day avg)"),
+    secondary_y=True,
+)
+
+# Add figure title
+fig.update_layout(
+    title_text="New Cases and Positivity: 7 Day Rolling Averages",
+    margin = margs,
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
+                 range = (0,15),
+                 secondary_y=False)
+fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
+                 range = (0,.5),
+                 tickformat = ',.0%',
+                 secondary_y=True)
+
+casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
 
@@ -265,12 +299,12 @@ fig = make_subplots(rows=4, cols=1,
                            [{"type": "table"}],
                           ],
                     subplot_titles=('Daily Reports (10 Day Window)',
-                                    'Day-to-Day Trends (10 Day Window)',
+                                    'Trend Data',
                                     'This Week vs Prior Weeks',                                    
                                     'This Month vs. Prior Months'))
 
 fig.add_trace(daily,row=1,col=1)
-fig.add_trace(daily_trends,row=2,col=1)
+fig.add_trace(casetrends,row=2,col=1)
 fig.add_trace(weekly_table,row=3,col=1)
 fig.add_trace(monthly_table,row=4,col=1)
 
@@ -299,7 +333,7 @@ permalink: /wcil-daily-report/
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 
-mdpage = header + weekdiv + trenddiv + weeklydiv + monthlydiv
+mdpage = header + weekdiv + casetrends + weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:
     f.write(mdpage)
