@@ -90,7 +90,7 @@ threemonths = monthly(wcil).iloc[-3:]
 # site table margins
 margs = go.layout.Margin(l=0, #left margin
                          r=0, #right margin
-                         b=0, #bottom margin
+                         b=10, #bottom margin
                          t=25  #top margin
                          )                          
 
@@ -123,15 +123,15 @@ daily = go.Table(header={'values':['<b>Date</b>',
 fig = go.Figure(data=daily)
 fig.update_layout(title="Daily Case Reports",
                   margin = margs,
-                  height= (ndays*60 + 150)
+                  height= (ndays*60)
                   )
 weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
 
 # plot 4 weeks of new case averages and positivity averages
-
-threeweeks = wcil.iloc[-28:]
+weeks = 4
+threeweeks = wcil.iloc[weeks*-7:]
 
 fig = make_subplots(specs=[[{"secondary_y": True}]])
 fig.add_trace(go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg New Positive'],
@@ -149,6 +149,12 @@ fig.add_trace(
 fig.update_layout(
     title_text="New Cases and Positivity: 7 Day Rolling Averages",
     margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 400
 )
 
 # Set x-axis title
@@ -241,37 +247,6 @@ fig.update_layout(title="This Month vs. Prior Months",
                   )
 monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
-#%%
-
-
-fig = make_subplots(rows=3, cols=1,                    
-                    vertical_spacing=0.02,                    
-                    specs=[[{"type": "table"}],
-                           #[{"type": "scatter"}],
-                           [{"type": "table"}],
-                           [{"type": "table"}],
-                          ],
-                    subplot_titles=('Daily Reports (10 Day Window)',
-                                    #'Trend Data',
-                                    'This Week vs Prior Weeks',                                    
-                                    'This Month vs. Prior Months'))
-
-fig.add_trace(daily,row=1,col=1)
-#fig.add_trace(casetrends,row=2,col=1)
-fig.add_trace(weekly_table,row=2,col=1)
-fig.add_trace(monthly_table,row=3,col=1)
-
-fig.update_layout(title_text="Warren County Daily Dashboard",      
-                  height=1400,
-                  width=850,
-                  margin = go.layout.Margin(l=20, #left margin
-                                            r=20, #right margin
-                                            b=10, #bottom margin
-                                            t=50  #top margin
-                                          )
-                  )
-
-plot(fig,filename='graphics/WC-Daily.html')
 
 #%%
 
