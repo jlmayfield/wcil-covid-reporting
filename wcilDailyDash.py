@@ -45,25 +45,21 @@ def daily(wchd_data,wchd_demo):
     return wcil
 
 def weekly(daily,nweeks=1):
-    basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
+    basis = daily[['New Positive','New Tests','New Deaths','New Positive per 100k']]
     wcil = basis.groupby(pd.Grouper(level='date',
                                       freq=str(nweeks)+'W-SUN',
                                       closed='left',
                                       label='left')).sum()
-    wcil['Cases per 100k'] = wcil['New Positive'] * 100000 / p
     wcil['% New Positive'] = wcil['New Positive']/wcil['New Tests']
     wcil['New Positive Change'] = wcil['New Positive'].pct_change()
-    wcil['New Youth Change'] = wcil['Youth Cases'].pct_change()
-    wcil['Consecutive Case Increases'] = cvda._increaseStreak(wcil['New Positive'])
-    wcil['Consecutive Youth Increases'] = cvda._increaseStreak(wcil['Youth Cases'])
+    wcil['Consecutive Case Increases'] = cvda._increaseStreak(wcil['New Positive'])   
     return wcil
 
 def monthly(daily):
-    basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
+    basis = daily[['New Positive','New Tests','New Deaths','New Positive per 100k']]
     wcil = basis.groupby(pd.Grouper(level='date',freq='MS',
                                       closed='left',label='left')).sum()
     # assume official test dates are a day prior to align with state
-    wcil['Cases per 100k'] = wcil['New Positive'] * 100000 / p
     wcil['% New Positive'] = wcil['New Positive']/wcil['New Tests']
     return wcil
 
@@ -84,9 +80,9 @@ dailywindow = wcil.loc[tenago:]
 #%%
 #all_the_days = daily(tests_wchd, demo_wchd)
 # this week + 4
-fiveweeks = weekly(all_the_days,nweeks=1).iloc[-5:]
+fiveweeks = weekly(wcil,nweeks=1).iloc[-5:]
 # this week + 2
-threemonths = monthly(all_the_days).iloc[-3:]
+threemonths = monthly(wcil).iloc[-3:]
 
 
 # %%
@@ -169,75 +165,35 @@ fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>",
 
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
-#%%
-
-daily_trends = go.Table(#columnwidth = [10,10,10,10,10,10,10],
-                           header={'values':['<b>Date</b>',
-                                            '<b>Day-to-Day Increases<br><em>New Cases</em><br>10 day Window</b>',                                            
-                                            '<b>Day-to-Day Increases<br><em>Youth Cases</em><br>10 day Window</b>',                                            
-                                            '<b>Positivity Rate<br>7 Day Window</b>',
-                                            '<b>Day-to-Day Increases<br><em>Positivity Rate</em><br>10 day Window</b>'
-                                            ],
-                                  'align':'left',
-                                  'fill_color':'gainsboro'},
-                           cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),                                            
-                                            df['Case Increases in 10 days'],
-                                            df['Youth Increases in 10 days'],
-                                            cvdv.styleprate_text(df['7 Day Avg % New Positive']),
-                                             df['Positivity Rate Increases in 10 days']
-                                           ],
-                                  'align':'left',
-                                  'fill_color':['whitesmoke',
-                                                'whitesmoke',
-                                                'whitesmoke',
-                                                cvdv.styleprate_cell(df['7 Day Avg % New Positive']),
-                                                'whitesmoke'
-                                                ],
-                                  })
-
-
-fig = go.Figure(data=daily_trends)
-fig.update_layout(title="Daily Trends",
-                  margin = margs,
-                  height= (ndays*45 + 100)
-                  )
-trenddiv = plot(fig, include_plotlyjs=False, output_type='div')
-
-
 
 #%%
 df = fiveweeks.reset_index().sort_values('date',ascending=False)
 weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Week Start Date</b>',
-                                            '<b>Cases per 100k</b>',
-                                            '<b>Positivity Rate</b>',
-                                            '<b>New Tests</b>',
                                             '<b>New Cases</b>',
-                                            '<b>Youth Cases</b>',
+                                            '<b>Cases per 100k</b>',
+                                            '<b>New Tests</b>',
+                                            '<b>Positivity Rate</b>',
                                             '<b>New Deaths</b>'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                           cells={'values':[df['date'].apply(lambda d: d.strftime("%B %d")),
-                                           cvdv.stylecp100k_text(df['Cases per 100k']),
-                                           cvdv.styleprate_text(df['% New Positive']),
-                                           df['New Tests'],
                                            cvdv.stylecase_text(df[['New Positive',
                                                               'Consecutive Case Increases',
                                                               'New Positive Change']]),
-                                           cvdv.stylecase_text(df[['Youth Cases',
-                                                              'Consecutive Youth Increases',
-                                                              'New Youth Change']]),
+                                           cvdv.stylecp100k_text(df['New Positive per 100k']),
+                                           df['New Tests'],
+                                           cvdv.styleprate_text(df['% New Positive']),                                           
                                            df['New Deaths']                                                          
                                            ],
                                  'align':'left',
                                  'fill_color':
                                      ['whitesmoke',
-                                      cvdv.stylecp100k_cell(df['Cases per 100k']),
-                                      cvdv.styleprate_cell(df['% New Positive']),
-                                      'whitesmoke',
                                       cvdv.stylecase_cell(df['Consecutive Case Increases']),
-                                      cvdv.stylecase_cell(df['Consecutive Youth Increases']),
+                                      cvdv.stylecp100k_cell(df['New Positive per 100k']),
+                                      'whitesmoke',
+                                      cvdv.styleprate_cell(df['% New Positive']),
                                       'whitesmoke'
                                       ]
                                  })
@@ -254,30 +210,27 @@ weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 df = threemonths.reset_index().sort_values('date',ascending=False)
 cell_vals = [df['date'].apply(lambda d: d.strftime("%B")),
-             df['Cases per 100k'].apply(lambda c:'{:.1f}'.format(c)),
-             cvdv.styleprate_text(df['% New Positive']),
-             df['New Tests'],
              df['New Positive'],
-             df['Youth Cases'],
+             df['New Positive per 100k'].apply(lambda c:'{:.1f}'.format(c)),
+             df['New Tests'],
+             cvdv.styleprate_text(df['% New Positive']),                         
              df['New Deaths']]
 monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Month</b>',
-                                            '<b>Cases per 100k</b>',
-                                            '<b>Positivity Rate</b>',
-                                            '<b>New Tests</b>',
                                             '<b>New Cases</b>',
-                                            '<b>Youth Cases</b>',
+                                            '<b>Cases per 100k</b>',
+                                            '<b>New Tests</b>',
+                                            '<b>Positivity Rate</b>',
                                             '<b>New Deaths</b>'],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                           cells={'values':cell_vals,
                                  'align':'left',
                                  'fill_color':['whitesmoke',
+                                               'whitesmoke',                                            
+                                               'whitesmoke',
                                                'whitesmoke',
                                                cvdv.styleprate_cell(df['% New Positive']),
-                                               'whitesmoke',
-                                               'whitesmoke',
-                                               'whitesmoke',
                                                'whitesmoke']}
                           )
 
@@ -291,22 +244,22 @@ monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 #%%
 
 
-fig = make_subplots(rows=4, cols=1,                    
+fig = make_subplots(rows=3, cols=1,                    
                     vertical_spacing=0.02,                    
                     specs=[[{"type": "table"}],
-                           [{"type": "table"}],
+                           #[{"type": "scatter"}],
                            [{"type": "table"}],
                            [{"type": "table"}],
                           ],
                     subplot_titles=('Daily Reports (10 Day Window)',
-                                    'Trend Data',
+                                    #'Trend Data',
                                     'This Week vs Prior Weeks',                                    
                                     'This Month vs. Prior Months'))
 
 fig.add_trace(daily,row=1,col=1)
-fig.add_trace(casetrends,row=2,col=1)
-fig.add_trace(weekly_table,row=3,col=1)
-fig.add_trace(monthly_table,row=4,col=1)
+#fig.add_trace(casetrends,row=2,col=1)
+fig.add_trace(weekly_table,row=2,col=1)
+fig.add_trace(monthly_table,row=3,col=1)
 
 fig.update_layout(title_text="Warren County Daily Dashboard",      
                   height=1400,
