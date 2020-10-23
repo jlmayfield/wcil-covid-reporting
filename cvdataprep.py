@@ -9,6 +9,74 @@ Created on Thu Jul  9 08:49:09 2020
 import pandas as pd
 import numpy as np
 
+
+#%%
+
+def loadwchd(datadir='./'):  
+    """
+    Read in raw data from WCHD and prepare as DataFrames
+
+    Parameters
+    ----------
+    datadir : str, optional
+        Path to directory containing the CSV files. The default is './'.
+
+    Returns
+    -------
+    reports_wchd : DataFrame
+        Case data. New Positive, Total Negative, New Deaths, and R2 rate data
+    demo_wchd : DataFrame
+        Case Demographics per Day
+    death_wchd : DataFrame
+        Death Demographics per Day
+
+    """
+    reports_wchd = pd.read_csv(datadir+'WCHD_Reports.csv',
+                         header=[0],index_col=0,
+                         parse_dates=True).fillna(0)
+    demo_wchd = pd.read_csv(datadir+'WCHD_Case_Demographics.csv',
+                       skiprows=[2],
+                       header=[0,1],index_col=0,
+                       parse_dates=True).fillna(0).iloc[:,0:12]
+    demo_wchd.columns.names = ['Sex','Age']
+    death_wchd = pd.read_csv('WCHD_Death_Demographics.csv',
+                       skiprows=[2],
+                       header=[0,1],index_col=0,
+                       parse_dates=True).fillna(0).iloc[:,0:12]
+    death_wchd.columns.names = ['Sex','Age']    
+    return (reports_wchd,demo_wchd,death_wchd)
+
+def loadusafacts(datadir='./'):
+    """
+    Read in raw data from USAFacts.org. 
+
+    Parameters
+    ----------
+    datadir : str, optional
+        Path to directory containing the CSV files. The default is './'.
+
+    Returns
+    -------
+    population : DataFrame
+        County Data with Population
+    cases : DataFrame
+        Total Cases per day
+
+    """    
+    population = pd.read_csv(datadir+'covid_county_population_usafacts.csv',
+                         dtype={'countyFIPS':np.int64,
+                                'County Name':str, 'State':str,
+                                'population':np.int64},
+                         index_col = 'countyFIPS')
+    cases = pd.read_csv(datadir+'covid_confirmed_usafacts.csv',
+                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
+                                'County Name':str, 'State':str,
+                                'date': np.datetime64},
+                         index_col = 'countyFIPS')
+    return (population,cases)
+
+#%%
+
 def prepwchd(raw_wchd):
     """
     Rebuild raw data with same index as usafacts data: (date,state,county)

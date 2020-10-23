@@ -9,10 +9,11 @@ Created on Thu Jul  9 14:54:26 2020
 
 
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from plotly.offline import plot
+
 
 
 
@@ -26,6 +27,112 @@ import cvdataanalysis as cvda
 MB_TOKEN = open(".mapbox_token").read()
 
 #%%
+
+# Colors Used to Indicate different levels of community spread
+RISK_COLORS = {'Minimal':'whitesmoke','Moderate':'rgba(255,215,0,0.5)','Substantial':'rgba(205,92,92,0.5)'}
+
+def style_casenum(cdata):
+    """
+    Style Actual and per 100k case numbers for tabluar output. Bold if the number
+    indicates moderate or substantial community spread 
+
+    Parameters
+    ----------
+    cdata : DataFrame
+        Daily New Cases and Cases per 100k
+
+    Returns
+    -------
+    list
+        Formatted strings for each day as 'actual (per 100k)'
+
+    """
+    def val2txt(vals):
+        act = vals['New Positive']
+        p100k = vals['New Positive per 100k']
+        text = "{:.0f} ({:.1f})".format(act,p100k)
+        if p100k > 50:
+            text = '<b>'+text+'</b>'
+        return text            
+    return [val2txt(cdata.loc[i]) for i in cdata.index]
+
+# Like above but cases per 100k only
+def stylecp100k_text(cp100k):
+    def val2txt(val):
+        if round(val) <= 50:
+            return "{:.1f}".format(val)
+        else:
+            return "<b>{:.1f}<b>".format(val)
+    return [val2txt(v) for v in cp100k]
+
+def stylecp100k_cell(cp100k):
+    """
+    Determine cell color for case data based on cases per 100k
+
+    Parameters
+    ----------
+    cp100k : Series
+        Cases per 100k per day
+
+    Returns
+    -------
+    list
+        List of RISK_COLORS values
+
+    """
+    def val2color(val):
+        if round(val) <= 50:
+            return RISK_COLORS['Minimal']
+        elif round(val) <= 100:
+            return RISK_COLORS['Moderate']
+        else:
+            return RISK_COLORS['Substantial']
+    return [val2color(v) for v in cp100k]
+
+
+def styleprate_text(prates):
+    def val2txt(val):
+        if val <= .05:
+            return "{:.1%}".format(val)
+        else:
+            return "<b>{:.1%}<b>".format(val)
+    return [val2txt(v) for v in prates]
+
+def styleprate_cell(prates):
+    def val2color(val):
+        if val <= .05:
+            return RISK_COLORS['Minimal']
+        elif val <= .08:
+            return RISK_COLORS['Moderate']
+        else:
+            return RISK_COLORS['Substantial']
+    return [val2color(v) for v in prates]
+
+
+def stylecase_text(cases_streak):
+    def val2txt(i):
+        streak = cases_streak.loc[i][1]
+        val = round(cases_streak.loc[i][0])
+        chg = cases_streak.loc[i][2]
+        if np.isinf(chg):
+            return"{:<6} (+)".format(val)
+        if np.isnan(chg):
+            return"{:<6} (None)".format(val)
+        elif streak < 2:
+            return "{:<6} ({:+.1%})".format(val,chg)
+        else:
+            return "<b>{:<6} ({:+.1%})</b>".format(val,chg)
+    return [val2txt(i) for i in cases_streak.index]
+
+def stylecase_cell(cases_streak):
+    def val2color(val):
+        if val < 2:
+            return RISK_COLORS['Minimal']
+        else:
+            return "rgba(255, 140, 0, 0.5)"
+    return [val2color(v) for v in cases_streak]
+
+
 
 #%%
 
