@@ -215,7 +215,8 @@ with open('graphics/WCIL-TopTenWeeksDemo.txt','w') as f:
 fig = px.bar(by_week,x=by_week.index,
              y=['Cases 0-10','Cases 10-20','Cases 20-40',
                 'Cases 40-60','Cases 60-80','Cases 80-100'],
-             labels={'variable':'Age Range'},             
+             labels={'variable':'Age Range','date':'Week Start Date',
+                     'value':'New Cases'},             
              title="New Cases Per Week (with Demographics)",
              color_discrete_sequence=px.colors.qualitative.Safe
              )
