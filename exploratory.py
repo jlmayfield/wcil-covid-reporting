@@ -117,6 +117,10 @@ by_day = daily(full_tests_wchd,demo_wchd,population)
 by_week = weekly(by_day).iloc[3:]
 by_month = monthly(by_day)
 
+#%%
+full_cases_usaf = cvdp.prepusafacts(cases)
+aoi = [17187,17095,17109]
+aoi_cases_usaf = cvda.expandUSFData(full_cases_usaf.loc[:,:,aoi], population)
 
 #%%
 
@@ -227,5 +231,20 @@ with open('graphics/WCIL-AllWeeksDemos.txt','w') as f:
     f.write(div)
     f.close()
 
+#%%
+
+fig = px.bar(by_month,x=[d.month_name() for d in by_month.index],
+             y=['Cases 0-10','Cases 10-20','Cases 20-40',
+                'Cases 40-60','Cases 60-80','Cases 80-100'],
+             labels={'variable':'Age Range','x':'Month','value':'New Cases'},             
+             title="New Cases Per Month (with Demographics)",
+             color_discrete_sequence=px.colors.qualitative.Safe
+             )
+fig.update_xaxes(tickvals=[d.month_name() for d in by_month.index])
+plot(fig,filename='graphics/WCIL-AllMonthsDemos.html')
+div = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-AllMondsDemos.txt','w') as f:
+    f.write(div)
+    f.close()
 
 
