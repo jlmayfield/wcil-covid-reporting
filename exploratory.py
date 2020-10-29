@@ -58,11 +58,7 @@ death_wchd = pd.read_csv('WCHD_Death_Demographics.csv',
 
 #%%
 
-def daily(basis,demo,pop):
-    basis = pd.concat([basis,
-                       cvda._per100k(basis['New Positive'], pop)
-                       ],                       
-                      axis=1)
+def daily(basis,demo):
     basis = basis.loc[:,17,17187]
     basis['Cases 0-10'] = (demo.T.loc[(slice(None),['0-10']),:].T).sum(axis=1).astype(int)
     basis['Cases 10-20'] = (demo.T.loc[(slice(None),['10-20']),:].T).sum(axis=1).astype(int)
