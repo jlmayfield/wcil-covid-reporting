@@ -256,7 +256,32 @@ def expandUSFData(usf_cases,pop):
                       axis=1)    
     return reorg
     
+#%%
 
+def _mc7day(col):
+    name = '7 Day Avg ' + col.name
+    return col.rolling(7).mean().fillna(0).rename(name)
+
+def _total(col):
+    name = 'Total ' + col.name
+    return col.cumsum().rename(name)
+
+
+def expandMCData(mc_cases):
+    everyone = (mc_cases['Student']+mc_cases['Employee']).rename('Everyone')
+    mc_cases = pd.concat([mc_cases,everyone],axis=1)
+    mc_cases = pd.concat([mc_cases,
+                          _mc7day(mc_cases['Student']),
+                          _mc7day(mc_cases['Employee']),
+                          _mc7day(mc_cases['Everyone']),
+                          _total(mc_cases['Student']),
+                          _total(mc_cases['Employee']),
+                          _total(mc_cases['Everyone'])
+                          ],
+                         axis=1)
+    return mc_cases
+
+    
 #%%    
 
 def demographic_totals(demo_daily,start=7,end=0):

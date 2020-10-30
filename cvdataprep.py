@@ -75,6 +75,18 @@ def loadusafacts(datadir='./'):
                          index_col = 'countyFIPS')
     return (population,cases)
 
+def loadmcreports(datadir='./'):
+    cases = pd.read_csv(datadir+'MC_Reports.csv',
+                        dtype={'Student':'Int64',
+                               'Employee':'Int64'},
+                        parse_dates=True,
+                        na_values=(''),
+                        index_col = 'date').fillna(0)
+    fst = cases.index[0]
+    lst = pd.to_datetime('today')
+    cases = cases.reindex(pd.date_range(fst,lst),fill_value=0)
+    return cases                        
+
 #%%
 
 def prepwchd(raw_wchd):
