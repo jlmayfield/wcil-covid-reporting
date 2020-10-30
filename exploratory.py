@@ -12,6 +12,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.offline import plot
+from plotly.subplots import make_subplots
 
 from urllib.request import urlopen
 import json
@@ -109,7 +110,7 @@ full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 # index that includes state/county fips
 tests_wchd = full_tests_wchd.loc[:,17,17187]
 
-by_day = daily(full_tests_wchd,demo_wchd,population)
+by_day = daily(full_tests_wchd,demo_wchd)
 by_week = weekly(by_day).iloc[3:]
 by_month = monthly(by_day)
 
@@ -243,4 +244,46 @@ with open('graphics/WCIL-AllMondsDemos.txt','w') as f:
     f.write(div)
     f.close()
 
+#%%
 
+# plot 4 weeks of new case averages and positivity averages
+weeks = 27
+threeweeks = by_day.iloc[weeks*-7:]
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg New Positive'],
+               name="New Cases (7 day avg)"),               
+    secondary_y=False,
+)
+
+fig.add_trace(
+    go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg % New Positive'],
+               name="Positivity (7 day avg)"),
+    secondary_y=True,
+)
+
+# Add figure title
+fig.update_layout(
+    title_text="New Cases and Positivity: 7 Day Rolling Averages",
+    #margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 400
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
+                 range = (0,15),
+                 secondary_y=False)
+fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
+                 range = (0,.5),
+                 tickformat = ',.0%',
+                 secondary_y=True)
+
+plot(fig,filename='graphics/dailycaseavg.html')
