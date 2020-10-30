@@ -106,43 +106,6 @@ weeks['Positivity'] = weeks['New Positive'] / weeks['New Tests']
 
 #%%
 
-days = [ d.strftime('%m/%d') for d in tests_wchd.index]
-fig = go.Figure(data=[
-    go.Bar(name='Positive',
-           x=[days,['WCHD']*len(days)],
-           y=tests_wchd['New Positive'],
-           marker_color='salmon'),
-    go.Bar(name='Negative',
-           x=[days,['WCHD']*len(days)],
-           y=tests_wchd['New Negative'],
-           marker_color='deepskyblue'),
-    go.Bar(name='Positive',
-           x=[days,['IDPH']*len(days)],
-           y=tests_idph['New Positive'],
-           marker_color='salmon',
-           showlegend=False),
-    go.Bar(name='Negative',
-           x=[days,['IDPH']*len(days)],
-           y=tests_idph['New Negative'],
-           marker_color='deepskyblue',
-           showlegend=False),
-    go.Bar(name='Positive',
-           x=[days,['USAFacts']*len(days)],
-           y=tests_usaf['New Positive'],
-           marker_color='salmon',
-           showlegend=False)    
-    ])
-
-fig.update_layout(barmode='stack',
-                  title='Test Result Source Data Comparison')
-                  
-
-
-plot(fig,filename='graphics/source-comparison-daily.html')
-dailydiv = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/source-comparison-daily.txt','w') as f:
-    f.write(dailydiv)
-    f.close()
 
 
 
@@ -263,4 +226,45 @@ with open('graphics/weekly-table.txt','w') as f:
     f.write(weeklydiv)
     f.close()
 
+#%%
+twchd = tests_wchd.iloc[-14:]
+tidph = tests_idph.iloc[-14:]
+tusaf = tests_usaf.iloc[-14:]
+days = [ d.strftime('%m/%d') for d in twchd.index]
+fig = go.Figure(data=[
+    go.Bar(name='Positive',
+           x=[days,['WCHD']*len(days)],
+           y=twchd['New Positive'],
+           marker_color='salmon'),
+    go.Bar(name='Negative',
+           x=[days,['WCHD']*len(days)],
+           y=twchd['New Negative'],
+           marker_color='deepskyblue'),
+    go.Bar(name='Positive',
+           x=[days,['IDPH']*len(days)],
+           y=tidph['New Positive'],
+           marker_color='salmon',
+           showlegend=False),
+    go.Bar(name='Negative',
+           x=[days,['IDPH']*len(days)],
+           y=tidph['New Negative'],
+           marker_color='deepskyblue',
+           showlegend=False),
+    go.Bar(name='Positive',
+           x=[days,['USAFacts']*len(days)],
+           y=tusaf['New Positive'],
+           marker_color='salmon',
+           showlegend=False)    
+    ])
+
+fig.update_layout(barmode='stack',
+                  title='Test Result Source Data Comparison')
+                  
+
+
+plot(fig,filename='graphics/source-comparison-daily.html')
+dailydiv = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/source-comparison-daily.txt','w') as f:
+    f.write(dailydiv)
+    f.close()
 
