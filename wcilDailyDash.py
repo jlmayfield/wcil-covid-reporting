@@ -33,17 +33,6 @@ p = 16981
 #%%
 
 
-def daily(wchd_data,wchd_demo):
-    keepers = ['New Positive','New Tests','New Deaths',
-               '% New Positive','7 Day Avg % New Positive']
-    wcil = wchd_data.loc[:,17,17187][keepers]
-    wcil['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
-    wcil['Cases per 100k'] = wcil['New Positive'] * 100000 / p
-    wcil['Case Increases in 10 days'] = cvda._increasesInNDays(wcil['New Positive'],10)
-    wcil['Youth Increases in 10 days'] = cvda._increasesInNDays(wcil['Youth Cases'],10)
-    wcil['Positivity Rate Increases in 10 days'] = cvda._increasesInNDays(wcil['% New Positive'],10)
-    return wcil
-
 def weekly(daily,nweeks=1):
     basis = daily[['New Positive','New Tests','New Deaths','New Positive per 100k']]
     wcil = basis.groupby(pd.Grouper(level='date',
@@ -66,12 +55,14 @@ def monthly(daily):
 
 #%%
 
+# WC Data Only, strip FIPS
 wcil = tests_wchd.loc[:,17,17187]
 
 ndays = 10 # fixed at 10 for now
 # get window dates
 today = pd.to_datetime('today')
-last_day = wcil.index[-1]
+last_day = wcil.index[-1] # last day in data
+# ten days from last day
 tenago = last_day - pd.Timedelta(ndays-1,unit='D')
 
 # 10 days 
