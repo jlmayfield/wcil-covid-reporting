@@ -12,6 +12,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.offline import plot
+from plotly.subplots import make_subplots
 
 from urllib.request import urlopen
 import json
@@ -31,45 +32,25 @@ import cvdataviz as cvdv
 warren = [17187]
 p = 16981
 
-population = pd.read_csv('covid_county_population_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,
-                                'County Name':str, 'State':str,
-                                'population':np.int64},
-                         index_col = 'countyFIPS')
+population,cases = cvdp.loadusafacts()
+reports_wchd,demo_wchd,death_wchd = cvdp.loadwchd()
+reports_mc = cvdp.loadmcreports()
 
-cases = pd.read_csv('covid_confirmed_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
-                                'County Name':str, 'State':str},                         
-                         index_col = 'countyFIPS')
 
-reports_wchd = pd.read_csv('WCHD_Reports.csv',
-                         header=[0],index_col=0,
-                         parse_dates=True).fillna(0)
-
-demo_wchd = pd.read_csv('WCHD_Case_Demographics.csv',
-                       skiprows=[2],
-                       header=[0,1],index_col=0,
-                       parse_dates=True).fillna(0).iloc[:,0:12]
-
-death_wchd = pd.read_csv('WCHD_Death_Demographics.csv',
-                       skiprows=[2],
-                       header=[0,1],index_col=0,
-                       parse_dates=True).fillna(0).iloc[:,0:12]
+reports_mc = cvda.expandMCData(reports_mc)
 
 #%%
 
-def daily(basis,demo,pop):
-    basis = pd.concat([basis,
-                       cvda._per100k(basis['New Positive'], pop)
-                       ],                       
-                      axis=1)
-    basis = basis.loc[:,17,17187]
-    basis['Cases 0-10'] = (demo.T.loc[(slice(None),['0-10']),:].T).sum(axis=1).astype(int)
-    basis['Cases 10-20'] = (demo.T.loc[(slice(None),['10-20']),:].T).sum(axis=1).astype(int)
-    basis['Cases 20-40'] = (demo.T.loc[(slice(None),['20-40']),:].T).sum(axis=1).astype(int)
-    basis['Cases 40-60'] = (demo.T.loc[(slice(None),['40-60']),:].T).sum(axis=1).astype(int)
-    basis['Cases 60-80'] = (demo.T.loc[(slice(None),['60-80']),:].T).sum(axis=1).astype(int)
-    basis['Cases 80-100'] = (demo.T.loc[(slice(None),['80-100']),:].T).sum(axis=1).astype(int)
+def daily(basis,demo):
+    #basis = basis.loc[:,17,17187]
+    demo_sum = pd.DataFrame(index=basis.index)
+    demo_sum['Cases 0-10'] = (demo.T.loc[(slice(None),['0-10']),:].T).sum(axis=1).astype(int)
+    demo_sum['Cases 10-20'] = (demo.T.loc[(slice(None),['10-20']),:].T).sum(axis=1).astype(int)
+    demo_sum['Cases 20-40'] = (demo.T.loc[(slice(None),['20-40']),:].T).sum(axis=1).astype(int)
+    demo_sum['Cases 40-60'] = (demo.T.loc[(slice(None),['40-60']),:].T).sum(axis=1).astype(int)
+    demo_sum['Cases 60-80'] = (demo.T.loc[(slice(None),['60-80']),:].T).sum(axis=1).astype(int)
+    demo_sum['Cases 80-100'] = (demo.T.loc[(slice(None),['80-100']),:].T).sum(axis=1).astype(int)
+    basis = pd.concat([basis,demo_sum],axis=1)
     return basis
     
 
@@ -113,7 +94,7 @@ full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 # index that includes state/county fips
 tests_wchd = full_tests_wchd.loc[:,17,17187]
 
-by_day = daily(full_tests_wchd,demo_wchd,population)
+by_day = daily(tests_wchd,demo_wchd)
 by_week = weekly(by_day).iloc[3:]
 by_month = monthly(by_day)
 
@@ -247,4 +228,55 @@ with open('graphics/WCIL-AllMondsDemos.txt','w') as f:
     f.write(div)
     f.close()
 
+#%%
+
+# plot 4 weeks of new case averages and positivity averages
+weeks = 27
+threeweeks = by_day.iloc[weeks*-7:]
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg New Positive'],
+               name="New Cases (7 day avg)"),               
+    secondary_y=False,
+)
+
+fig.add_trace(go.Scatter(x=reports_mc.index, y=reports_mc['7 Day Avg Everyone'],
+               name="MC New Cases (7 day avg)"),               
+    secondary_y=False,
+)
+
+
+fig.add_trace(
+    go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg % New Positive'],
+               name="Positivity (7 day avg)"),
+    secondary_y=True,
+)
+
+# Add figure title
+fig.update_layout(
+    title_text="New Cases and Positivity: 7 Day Rolling Averages",
+    #margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 400
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
+                 range = (0,15),
+                 secondary_y=False)
+fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
+                 range = (0,.5),
+                 tickformat = ',.0%',
+                 secondary_y=True)
+
+plot(fig,filename='graphics/dailycaseavg.html')
+
+#%%
 
