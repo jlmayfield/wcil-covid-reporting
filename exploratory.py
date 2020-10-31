@@ -240,10 +240,10 @@ fig.add_trace(go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg New Positiv
     secondary_y=False,
 )
 
-fig.add_trace(go.Scatter(x=reports_mc.index, y=reports_mc['7 Day Avg Everyone'],
-               name="MC New Cases (7 day avg)"),               
-    secondary_y=False,
-)
+#fig.add_trace(go.Scatter(x=reports_mc.index, y=reports_mc['7 Day Avg Everyone'],
+#               name="MC New Cases (7 day avg)"),               
+#    secondary_y=False,
+#)
 
 
 fig.add_trace(
