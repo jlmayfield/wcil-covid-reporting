@@ -91,12 +91,12 @@ fig = go.Figure()
 fig.add_trace(go.Bar(x=all_of_il.index,
                     y=all_of_il['New Positive'],
                     name='New Cases',
-                    hovertemplate='%{x}: %{y} cases<extra></extra>'
+                    hovertemplate='%{y} cases<extra></extra>'
                     ))
 fig.add_trace(go.Scatter(x=all_of_il.index,
                          y=all_of_il['7 Day Avg New Positive'],
                          name='7 Day Rolling Average',
-                         hovertemplate='%{y} 7 Day Average<extra></extra>'
+                         hovertemplate='%{y:.1f} 7 Day Average<extra></extra>'
                          ))
 fig.update_layout(title="October in Illinois: New Cases",
                   xaxis = dict(
@@ -105,6 +105,7 @@ fig.update_layout(title="October in Illinois: New Cases",
                            tickangle=45),
                   xaxis_showgrid=False, 
                   yaxis_showgrid=False,
+                  hovermode='x unified'
                   )
 plot(fig,filename='graphics/october-IL.html')
              
@@ -115,7 +116,10 @@ fig = go.Figure()
 for r in region_idx:
     fig.add_trace(go.Scatter(x=date_idx,
                              y=regions['7 Day Avg New Positive per 100k'].loc[:,r],
-                             name=r))
+                             hovertemplate='%{meta[0]}: %{y:.1f} cases<extra></extra>',                             
+                             name=r,
+                             meta=[r]                             
+                             ))
 fig.update_layout(title="October in Illinois: Seven Day Average of New Cases per 100,000 people by Recovery Region",
                   xaxis = dict(
                            tickmode = 'array',
@@ -123,20 +127,23 @@ fig.update_layout(title="October in Illinois: Seven Day Average of New Cases per
                            tickangle=45),
                   xaxis_showgrid=False, 
                   yaxis_showgrid=False,
+                  hovermode='x unified'
+                  
                   )
 plot(fig,filename='graphics/october-region100k.html')
 
 #%%
 colors = px.colors.sequential.Viridis
+cmax = 75.0
 cscale = [[0.0,colors[0]],
-          [10.0/420.0,colors[1]],
-          [30.0/420.0,colors[2]],
-          [50.0/420.0,colors[3]],
-          [65.0/420.0,colors[4]],
-          [85.0/420.0,colors[5]],
-          [100.0/420.0,colors[6]],
-          [150.0/420.0,colors[7]],
-          [200.0/420.0,colors[8]],
+          [1.0/cmax,colors[1]],
+          [9.0/cmax,colors[2]],
+          [10.0/cmax,colors[3]],
+          [16.0/cmax,colors[4]],
+          [20.0/cmax,colors[5]],
+          [24.0/cmax,colors[6]],
+          [25.0/cmax,colors[7]],
+          [45.0/cmax,colors[8]],
           [1.0,colors[9]]
           ]
 nostate = ilcounties.loc[:,17,:]
@@ -144,20 +151,26 @@ fips = nostate.index.get_level_values('countyFIPS').unique()
 county_names = cvdv.get_fips_dict(fips, population)
 firstday = nostate.loc[day1,:]
 
+
 #%%
-fig = go.Figure(go.Choroplethmapbox(geojson=counties, 
-                                    locations= firstday.index,
-                                    z = firstday['New Positive per 100k'],                                    
-                                    zmin=0,zmax=420,
-                                    text = [county_names[f] for f in firstday.index],
-                                    colorscale=cscale,                                    
-                                    marker_opacity = 0.2,
-                                    hovertemplate='%{text}<br>Cases per 100k: %{z}<extra></extra>'))
-fig.update_layout(mapbox_style='streets', mapbox_accesstoken=MB_TOKEN,                  
-                  mapbox_zoom = 6,
-                  #springfield,IL
-                  mapbox_center = {'lon':-89.6501, 'lat': 39.7817},
-                  title="October in Illinois: Cases per 100,000 people<br>" +
-                  str(day1.date()))
-plot(fig,filename='graphics/october-countymap.html') 
-                  
+
+df = usaf_mnth.reset_index()
+df = df[ df['date'] <= pd.to_datetime('2020-10-31')]
+df['date'] = df['date'].apply(lambda d: str(d.date()))
+
+fig = px.choropleth_mapbox(df,geojson=counties,
+                           color='7 Day Avg New Positive per 100k',                           
+                           locations='countyFIPS',
+                           animation_frame='date',    
+                           color_continuous_scale=cscale,
+                           range_color=(0,75),
+                           opacity=0.2,
+                           center={'lon':-89.6501, 'lat': 39.7817},
+                           mapbox_style='streets',
+                           zoom=6,
+                           title="October 2020: 7 Day Average of New Cases per 100k"
+                           )
+fig.update_layout(mapbox_accesstoken=MB_TOKEN)
+
+plot(fig,filename='graphics/october-mapanimation.html')
+

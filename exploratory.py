@@ -240,11 +240,6 @@ fig.add_trace(go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg New Positiv
     secondary_y=False,
 )
 
-#fig.add_trace(go.Scatter(x=reports_mc.index, y=reports_mc['7 Day Avg Everyone'],
-#               name="MC New Cases (7 day avg)"),               
-#    secondary_y=False,
-#)
-
 
 fig.add_trace(
     go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg % New Positive'],
@@ -280,3 +275,45 @@ plot(fig,filename='graphics/dailycaseavg.html')
 
 #%%
 
+
+# plot 4 weeks of new case averages and positivity averages
+weeks = 16
+threeweeks = by_day.iloc[weeks*-7:]
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=threeweeks.index, 
+                         y=threeweeks['7 Day Avg New Positive'],
+                         name="WC",
+                         hovertemplate="%{y:.1f}"
+              ))
+
+fig.add_trace(go.Scatter(x=threeweeks.index, 
+                         y=reports_mc['7 Day Avg Everyone'].loc[threeweeks.index],
+                         name="MC",
+                         hovertemplate="%{y:.1f}"
+              ))
+
+# Add figure title
+fig.update_layout(
+    title_text="New Cases in Warren County and Monmouth College (7 Day Averages)",
+    #margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 400,
+    hovermode='x unified'
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
+                 range = (0,15),
+                 )
+
+plot(fig,filename='graphics/wcil_mc_dailyavg.html')
+
+
+#%%
