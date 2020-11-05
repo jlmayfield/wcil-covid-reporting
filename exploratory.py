@@ -145,6 +145,47 @@ div = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-TopTenWeeks.txt','w') as f:
     f.write(div)
     f.close()
+#%%
+
+top_ten = by_day.sort_values('New Positive',ascending=False).iloc[:10].reset_index()
+vals = [top_ten['date'].apply(lambda d: d.strftime("%B %d")),        
+        top_ten['New Positive'],
+        top_ten['New Tests'],        
+        top_ten['% New Positive'].apply(lambda n: "{:.1%}".format(n)),
+        top_ten['New Positive per 100k'].apply(lambda n: "{:.1f}".format(n)),
+        top_ten['New Deaths']]
+headers = ['<b>Week Start Date</b>',           
+           '<b>Positive</b>',
+           '<b>Tests</b>',
+           '<b>Pos. Rate</b>',
+           '<b>Cases per 100k</b>',
+           '<b>Deaths</b>']
+daily_table = go.Table(header={'values':headers,
+                                 'align':'left',
+                                 'fill_color':'gainsboro'},
+                        cells={'values': vals,
+                                 'align': 'left',
+                                 'fill_color': 'whitesmoke',
+                                 'height':30})
+fig = go.Figure(data=daily_table)
+
+fig.update_layout(title_text="Ten Highest Daily Case Counts",
+                  margin = go.layout.Margin(l=0, #left margin
+                                            r=0, #right margin
+                                            b=0, #bottom margin
+                                            t=25  #top margin
+                                            ),
+                  #height=1000,
+                  #width=650
+                  )
+
+
+plot(fig,filename='graphics/WCIL-TopTenDays.html')
+div = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-TopTenDays.txt','w') as f:
+    f.write(div)
+    f.close()
+
 
 #%%
 

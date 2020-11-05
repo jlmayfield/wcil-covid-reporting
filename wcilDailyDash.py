@@ -8,10 +8,12 @@ Created on Thu Sep 17 10:24:53 2020
 
 
 import pandas as pd
+import numpy as np
 
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from plotly.offline import plot
+import plotly.express as px
 
 
 import cvdataprep as cvdp
@@ -81,7 +83,7 @@ threemonths = monthly(wcil).iloc[-3:]
 # site table margins
 margs = go.layout.Margin(l=0, #left margin
                          r=0, #right margin
-                         b=10, #bottom margin
+                         b=25, #bottom margin
                          t=25  #top margin
                          )                          
 
@@ -145,7 +147,7 @@ fig.update_layout(
         y=0.99,
         xanchor="left",
         x=0.01),
-    height = 400
+    height = 420
 )
 
 # Set x-axis title
@@ -237,10 +239,88 @@ fig.update_layout(title="This Month vs. Prior Months",
                   height= 250
                   )
 monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
+#%%
+
+counts = wcil['New Positive'].value_counts()
+x_max = counts.index[-1]
+y_max = counts.max()
+
+fig = go.Figure()
+fig.add_trace(go.Bar(
+    x=counts.index,
+    y=counts,
+    name='New Cases per Day', #
+    hovertemplate="%{y} days with %{x} cases<extra></extra>",
+    marker_color=px.colors.sequential.Viridis[0],
+    opacity=0.75,
+    showlegend=False
+    ))    
+
+
+points_x = dailywindow['New Positive']
+points_y = [counts.loc[c] for c in points_x]
+points_dates = [str(d.date()) for d in dailywindow.index]
+
+fig.add_trace(go.Scatter(
+    x=points_x[0:3],
+    y=points_y[0:3],
+    marker=dict(color=px.colors.sequential.Viridis[5],size=10),    
+    text = points_dates[0:3],
+    #showlegend=False,
+    name='Last Week',
+    mode='markers',
+    hovertemplate="%{text}: %{x} cases<extra></extra>",
+    ))  
+
+fig.add_trace(go.Scatter(
+    x=points_x[3:9],
+    y=points_y[3:9],
+    marker=dict(color=px.colors.sequential.Viridis[7],size=14),    
+    text = points_dates[0:9],
+    #showlegend=False,
+    name='This Week',
+    mode='markers',
+    hovertemplate="%{text}: %{x} cases<extra></extra>",
+    ))  
+
+fig.add_trace(go.Scatter(
+    x=points_x[-1:],
+    y=points_y[-1:],
+    marker=dict(color=px.colors.sequential.Viridis[9],size=18),    
+    text = points_dates[-1:],
+    #showlegend=False,
+    name='Today',
+    mode='markers',
+    hovertemplate="%{text}: %{x} cases<extra></extra>",
+    ))  
+
+fig.update_layout(
+    title_text='New Cases reported in a Single Day', # title of plot
+    xaxis_title_text='Number of Cases', # xaxis label
+    yaxis_title_text='Number of Days', # yaxis label
+    bargap=0.1, # gap between bars of adjacent location coordinates
+    xaxis = dict(tickmode = 'array',
+                 tickvals = list(range(0,x_max+1))),                 
+    yaxis_range = (0,y_max+5),
+    hovermode='x unified',
+    margin = margs,
+    legend=dict(
+        yanchor="top",        
+        xanchor="right",
+        x = .99,
+        y = .99,        
+    ),
+    height=420   
+)
+
+
+plot(fig,filename='graphics/DailyCaseHisto.html') 
+dailyhistodiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 
 #%%
 
+pgraph = '<p></p>'
 mdpage = ""
 header = """---
 layout: page
@@ -252,7 +332,8 @@ permalink: /wcil-daily-report/
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 
-mdpage = header + weekdiv + casetrends + weeklydiv + monthlydiv
+mdpage = header + weekdiv + casetrends + pgraph +\
+    dailyhistodiv + pgraph + weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:
     f.write(mdpage)
