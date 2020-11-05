@@ -267,7 +267,7 @@ fig.add_trace(go.Scatter(
     marker=dict(color=px.colors.sequential.Viridis[5],size=10),    
     text = points_dates[0:3],
     #showlegend=False,
-    name='Last Week',
+    name=points_dates[0]+' - '+points_dates[2],
     mode='markers',
     hovertemplate="%{text}: %{x} cases<extra></extra>",
     ))  
@@ -276,9 +276,9 @@ fig.add_trace(go.Scatter(
     x=points_x[3:9],
     y=points_y[3:9],
     marker=dict(color=px.colors.sequential.Viridis[7],size=14),    
-    text = points_dates[0:9],
+    text = points_dates[3:9],
     #showlegend=False,
-    name='This Week',
+    name=points_dates[3]+' - '+points_dates[8],
     mode='markers',
     hovertemplate="%{text}: %{x} cases<extra></extra>",
     ))  
@@ -289,13 +289,13 @@ fig.add_trace(go.Scatter(
     marker=dict(color=px.colors.sequential.Viridis[9],size=18),    
     text = points_dates[-1:],
     #showlegend=False,
-    name='Today',
+    name=points_dates[-1],
     mode='markers',
     hovertemplate="%{text}: %{x} cases<extra></extra>",
     ))  
 
 fig.update_layout(
-    title_text='New Cases reported in a Single Day', # title of plot
+    title_text='New Cases reported in a Single Day as of ' + points_dates[-1], # title of plot
     xaxis_title_text='Number of Cases', # xaxis label
     yaxis_title_text='Number of Days', # yaxis label
     bargap=0.1, # gap between bars of adjacent location coordinates
