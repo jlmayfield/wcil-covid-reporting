@@ -57,8 +57,8 @@ data_idph = pd.read_csv('ILDPH_Reports.csv',
 
 
 #%%
-start_date = pd.to_datetime('2020-09-13')
-end_date = pd.to_datetime('2020-10-24') #+ pd.Timedelta(1,unit='D')
+start_date = pd.to_datetime('2020-10-25')
+end_date = pd.to_datetime('2020-11-03') #+ pd.Timedelta(1,unit='D')
 
 full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 tests_wchd = full_tests_wchd.loc[:,17,17187].loc[start_date:end_date]
@@ -100,12 +100,6 @@ weeks = wcVil.iloc[:,:3].groupby([pd.Grouper(level=1),
 
 weeks['per 100k'] = weeks['New Positive'] * 100000 / p
 weeks['Positivity'] = weeks['New Positive'] / weeks['New Tests']
-
-
-
-
-#%%
-
 
 
 
