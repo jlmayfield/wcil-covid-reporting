@@ -358,3 +358,21 @@ plot(fig,filename='graphics/wcil_mc_dailyavg.html')
 
 
 #%%
+
+age_groups = ['Cases 0-10','Cases 10-20', 'Cases 20-40',
+       'Cases 40-60', 'Cases 60-80', 'Cases 80-100']
+demo_daily = by_day[['Cases 0-10','Cases 10-20', 'Cases 20-40',
+       'Cases 40-60', 'Cases 60-80', 'Cases 80-100']]
+
+sda = [cvda._mc7day(demo_daily[a]) for a in age_groups]
+demo_daily = pd.concat([demo_daily,*sda],axis=1)
+demo_avgs = demo_daily[['7 Day Avg '+ a for a in age_groups]]    
+
+#%%
+
+fig = go.Figure()
+for c in demo_avgs.columns:
+    fig.add_trace(go.Scatter(x=demo_avgs.index,
+                             y=demo_avgs[c],
+                             name=c))
+plot(fig,filename='graphics/dailyDemoAvgs.html')    

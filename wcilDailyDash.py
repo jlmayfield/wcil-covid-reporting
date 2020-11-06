@@ -262,15 +262,16 @@ points_y = [counts.loc[c] for c in points_x]
 points_dates = [str(d.date()) for d in dailywindow.index]
 
 fig.add_trace(go.Scatter(
-    x=points_x[0:3],
-    y=points_y[0:3],
-    marker=dict(color=px.colors.sequential.Viridis[5],size=10),    
-    text = points_dates[0:3],
+    x=points_x[-1:],
+    y=points_y[-1:],
+    marker=dict(color=px.colors.sequential.Viridis[9],size=18),    
+    text = points_dates[-1:],
     #showlegend=False,
-    name=points_dates[0]+' - '+points_dates[2],
+    name=points_dates[-1],
     mode='markers',
     hovertemplate="%{text}: %{x} cases<extra></extra>",
     ))  
+
 
 fig.add_trace(go.Scatter(
     x=points_x[3:9],
@@ -284,12 +285,12 @@ fig.add_trace(go.Scatter(
     ))  
 
 fig.add_trace(go.Scatter(
-    x=points_x[-1:],
-    y=points_y[-1:],
-    marker=dict(color=px.colors.sequential.Viridis[9],size=18),    
-    text = points_dates[-1:],
+    x=points_x[0:3],
+    y=points_y[0:3],
+    marker=dict(color=px.colors.sequential.Viridis[5],size=10),    
+    text = points_dates[0:3],
     #showlegend=False,
-    name=points_dates[-1],
+    name=points_dates[0]+' - '+points_dates[2],
     mode='markers',
     hovertemplate="%{text}: %{x} cases<extra></extra>",
     ))  
