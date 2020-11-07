@@ -253,7 +253,7 @@ with open('graphics/WCIL-AllWeeksDemos.txt','w') as f:
     f.write(div)
     f.close()
 
-#%%
+    #%%
 
 fig = px.bar(by_month,x=[d.month_name() for d in by_month.index],
              y=['Cases 0-10','Cases 10-20','Cases 20-40',
@@ -375,4 +375,21 @@ for c in demo_avgs.columns:
     fig.add_trace(go.Scatter(x=demo_avgs.index,
                              y=demo_avgs[c],
                              name=c))
-plot(fig,filename='graphics/dailyDemoAvgs.html')    
+plot(fig,filename='graphics/dailyDemoAvgs.html')   
+
+#%%
+
+kw = population[population['County Name'].isin(['Warren County', 'Knox County'])]
+kw = kw[kw['State'] == 'IL'] 
+# warren --> knox  = 2.95
+# knox --> warren = 0.33
+
+data_idph = pd.read_csv('ILDPH_Reports.csv',
+                        header=[0],index_col=0,
+                        parse_dates=True).fillna(0)
+
+kw_cases = data_idph[['New Positive','New Tests','Knox New Positive','Knox New Tests']]
+kw_cases['New Negative'] = kw_cases['New Tests'] - kw_cases['New Positive']
+kw_cases['Knox New Negative'] = kw_cases['Knox New Tests'] - kw_cases['Knox New Positive']
+kw_cases = kw_cases.iloc[:-3]
+w2k = kw['population'].iloc[0] / kw['population'].iloc[1]
