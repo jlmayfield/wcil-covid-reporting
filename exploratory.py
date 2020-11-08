@@ -105,47 +105,6 @@ aoi_cases_usaf = cvda.expandUSFData(full_cases_usaf.loc[:,:,aoi], population)
 
 #%%
 
-top_ten = by_week.sort_values('New Positive',ascending=False).iloc[:10].reset_index()
-vals = [top_ten['Week Number'],
-        top_ten['date'].apply(lambda d: d.strftime("%B %d")),        
-        top_ten['New Positive'],
-        top_ten['New Tests'],        
-        top_ten['% New Positive'].apply(lambda n: "{:.1%}".format(n)),
-        top_ten['New Positive per 100k'].apply(lambda n: "{:.1f}".format(n)),
-        top_ten['New Deaths']]
-headers = ['<b>Week Number</b>',
-           '<b>Week Start Date</b>',           
-           '<b>Positive</b>',
-           '<b>Tests</b>',
-           '<b>Pos. Rate</b>',
-           '<b>Cases per 100k</b>',
-           '<b>Deaths</b>']
-weekly_table = go.Table(header={'values':headers,
-                                 'align':'left',
-                                 'fill_color':'gainsboro'},
-                        cells={'values': vals,
-                                 'align': 'left',
-                                 'fill_color': 'whitesmoke',
-                                 'height':30})
-fig = go.Figure(data=weekly_table)
-
-fig.update_layout(title_text="Ten Highest Single Week Case Counts",
-                  margin = go.layout.Margin(l=0, #left margin
-                                            r=0, #right margin
-                                            b=0, #bottom margin
-                                            t=25  #top margin
-                                            ),
-                  #height=1000,
-                  #width=650
-                  )
-
-
-plot(fig,filename='graphics/WCIL-TopTenWeeks.html')
-div = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/WCIL-TopTenWeeks.txt','w') as f:
-    f.write(div)
-    f.close()
-#%%
 
 top_ten = by_day.sort_values('New Positive',ascending=False).iloc[:10].reset_index()
 vals = [top_ten['date'].apply(lambda d: d.strftime("%B %d")),        
@@ -187,10 +146,54 @@ with open('graphics/WCIL-TopTenDays.txt','w') as f:
     f.close()
 
 
+
 #%%
 
+top_ten = by_week.sort_values('New Positive',ascending=False).iloc[:10].reset_index()
 vals = [top_ten['Week Number'],
         top_ten['date'].apply(lambda d: d.strftime("%B %d")),        
+        top_ten['New Positive'],
+        top_ten['New Tests'],        
+        top_ten['% New Positive'].apply(lambda n: "{:.1%}".format(n)),
+        top_ten['New Positive per 100k'].apply(lambda n: "{:.1f}".format(n)),
+        top_ten['New Deaths']]
+headers = ['<b>Week Number</b>',
+           '<b>Week Start Date</b>',           
+           '<b>Positive</b>',
+           '<b>Tests</b>',
+           '<b>Pos. Rate</b>',
+           '<b>Cases per 100k</b>',
+           '<b>Deaths</b>']
+weekly_table = go.Table(header={'values':headers,
+                                 'align':'left',
+                                 'fill_color':'gainsboro'},
+                        cells={'values': vals,
+                                 'align': 'left',
+                                 'fill_color': 'whitesmoke',
+                                 'height':30})
+fig = go.Figure(data=weekly_table)
+
+fig.update_layout(title_text="Ten Highest Single Week Case Counts",
+                  margin = go.layout.Margin(l=0, #left margin
+                                            r=0, #right margin
+                                            b=0, #bottom margin
+                                            t=25  #top margin
+                                            ),
+                  #height=1000,
+                  #width=650
+                  )
+
+
+plot(fig,filename='graphics/WCIL-TopTenWeeks.html')
+div = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-TopTenWeeks.txt','w') as f:
+    f.write(div)
+    f.close()
+
+
+#%%
+
+vals = [top_ten['date'].apply(lambda d: d.strftime("%B %d")),        
         top_ten['New Positive'],
         top_ten['Cases 0-10'],
         top_ten['Cases 10-20'],        
@@ -198,8 +201,7 @@ vals = [top_ten['Week Number'],
         top_ten['Cases 40-60'],
         top_ten['Cases 60-80'],
         top_ten['Cases 80-100']]
-headers = ['<b>Week Number</b>',
-           '<b>Week Start Date</b>',           
+headers = ['<b>Week Start Date</b>',           
            '<b>Positive</b>',
            '<b>Cases 0-10</b>',
            '<b>Cases 10-20</b>',
