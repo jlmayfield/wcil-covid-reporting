@@ -188,9 +188,10 @@ fig.update_layout(
 # Set x-axis title
 fig.update_xaxes(title_text="Date")
 
+lymax = by_day['7 Day Avg New Positive'].max()
 # Set y-axes titles
 fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
-                 range = (0,15),
+                 range = (0,lymax+2),
                  secondary_y=False)
 fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
                  range = (0,.5),
