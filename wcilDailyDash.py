@@ -153,14 +153,17 @@ fig.update_layout(
 # Set x-axis title
 fig.update_xaxes(title_text="Date")
 
+ly_max = threeweeks['7 Day Avg New Positive'].max()
+ry_max = threeweeks['7 Day Avg % New Positive'].max()
 # Set y-axes titles
 fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
-                 range = (0,15),
+                 range = (0,ly_max+2),
                  secondary_y=False)
 fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
                  range = (0,.5),
                  tickformat = ',.0%',
                  secondary_y=True)
+fig.update_layout(hovermode='x unified')
 
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
