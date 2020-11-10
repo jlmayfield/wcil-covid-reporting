@@ -7,13 +7,13 @@ categories: [Warren County, Retrospective]
 ---
  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-### Prolog
+### Prologue
 
 Monmouth College is located in Monmouth, Illinois which is the county seat for
 Warren County, Illinois. Like the rest of the globe, we've been spending the summer
 trying to navigate the COVID-19 Coronavirus pandemic. The college ended in-person instruction
 in early April of 2020 when the state of Illinois entered a general lock-down asking
-residents to, wherever fesiable, work from home, stay home, and hunker down to
+residents to, wherever feasible, work from home, stay home, and hunker down to
 slow the spread of the virus.  It's now early August, the virus is still present
 within our community and the college is preparing to welcome 800+ students back
 to campus for a mixture of in-person and online instruction. The Monmouth-Roseville
