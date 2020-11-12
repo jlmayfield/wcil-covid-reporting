@@ -209,6 +209,14 @@ fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,by_day['Total Positive'].max()+5))),
 tots = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/totalcases.html')
+#%%
+
+fig = px.line(by_day,x=by_day.index,y='Total Deaths',
+                 title='Total COVID Related Deaths')
+fig.update_layout(margin=margs,
+                  yaxis=dict(range=(0,by_day['Total Deaths'].max()+5))),
+tots = plot(fig,include_plotlyjs=False,output_type='div')
+plot(fig,filename='graphics/totaldeaths.html')
 
     #%%
 

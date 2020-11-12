@@ -395,3 +395,8 @@ kw_cases['New Negative'] = kw_cases['New Tests'] - kw_cases['New Positive']
 kw_cases['Knox New Negative'] = kw_cases['Knox New Tests'] - kw_cases['Knox New Positive']
 kw_cases = kw_cases.iloc[:-3]
 w2k = kw['population'].iloc[0] / kw['population'].iloc[1]
+
+
+#%% 
+
+
