@@ -215,7 +215,7 @@ fig = px.line(by_day,x=by_day.index,y='Total Deaths',
                  title='Total COVID Related Deaths')
 fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,by_day['Total Deaths'].max()+5))),
-tots = plot(fig,include_plotlyjs=False,output_type='div')
+totsdeath = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/totaldeaths.html')
 
     #%%
@@ -232,7 +232,7 @@ permalink: /wcil-history-report/
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 
-mdpage = header + tots + pgraph + casetrends+ pgraph + weeklydiv + pgraph + monthlydiv
+mdpage = header + tots + pgraph + totsdeath + pgraph + casetrends+ pgraph + weeklydiv + pgraph + monthlydiv
 
 with open('docs/wcilHistory.md','w') as f:
     f.write(mdpage)
