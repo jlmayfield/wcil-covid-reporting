@@ -57,8 +57,8 @@ data_idph = pd.read_csv('ILDPH_Reports.csv',
 
 
 #%%
-start_date = pd.to_datetime('2020-10-25')
-end_date = pd.to_datetime('2020-11-03') #+ pd.Timedelta(1,unit='D')
+start_date = pd.to_datetime('2020-10-04')
+end_date = pd.to_datetime('2020-11-07') #+ pd.Timedelta(1,unit='D')
 
 full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 tests_wchd = full_tests_wchd.loc[:,17,17187].loc[start_date:end_date]
