@@ -399,4 +399,33 @@ w2k = kw['population'].iloc[0] / kw['population'].iloc[1]
 
 #%% 
 
+df = demo_wchd.copy().reorder_levels([1,0],axis=1)
+df = df.reindex(sorted(df.columns),axis=1)
+df.columns = [i[1]+ ' ' + i[0] for i in df.columns]
+df.index.name = 'date'
+
+demo_weeks = df.groupby(pd.Grouper(level='date',
+                                   freq='W-SUN',
+                                   closed='left',
+                                   label='left')).sum().reset_index() 
+d3color = px.colors.qualitative.D3
+t10color = px.colors.qualitative.T10
+
+clrs = [d3color[0],t10color[0],
+        d3color[1],t10color[1],
+        d3color[2],t10color[4],
+        d3color[3],t10color[2],
+        d3color[4],t10color[6],
+        d3color[5],t10color[8]
+        ]
+fig = px.bar(demo_weeks,
+             x='date',
+             y=df.columns,
+             labels={'variable':'Group'},
+             color_discrete_sequence=clrs
+             )
+fig.update_layout(title='Weekly Case Counts with Demographics',
+                  hovermode='x unified')
+plot(fig,filename='graphics/agesex_byweek.html')
+
 
