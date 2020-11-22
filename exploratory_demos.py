@@ -218,6 +218,6 @@ for i in range(len(cumsum_order)):
                              ),
                   row = int(i/3)+1,col=int(i%3)+1)
 
-fig.update_yaxes(range=(0,catmax+10))
+fig.update_yaxes(range=(0,catmax+3))
 fig.update_layout(title="Total Deaths by Demographic Groups")
 plot(fig,filename='graphics/demototals_deaths_multiples.html')
