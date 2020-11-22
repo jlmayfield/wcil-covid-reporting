@@ -6,25 +6,16 @@ Created on Wed Oct  7 12:31:03 2020
 @author: jlmayfield
 """
 
-import os
 import pandas as pd
-import numpy as np
 
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.offline import plot
 from plotly.subplots import make_subplots
 
-from urllib.request import urlopen
-import json
-with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
-    counties = json.load(response)
-
-MB_TOKEN = open(".mapbox_token").read()
-
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
-import cvdataviz as cvdv
+
 #%%
 
 population, actuals = cvdp.loadusafacts()
@@ -56,14 +47,29 @@ def countyTotalGraph(data,name):
     fname = 'graphics/'+name.replace(' ','_')+'_usafacts_total.html'
     plot(fig,filename=fname)
 
-#%%
+def countyTotalGraphPer100k(data,name):
+    ## total cases via usafacts.org
+    tot = data['Total Positive per 100k'].max()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data.index,
+                             y=data['Total Positive per 100k'],
+                             mode='lines',
+                             fill='tozeroy'))
+    fig.update_layout(yaxis={'range':(0,tot+50)},
+                      title="Total Cases per 100,00 People in "+name)
+    fname = 'graphics/'+name.replace(' ','_')+'_usafacts_totalp100k.html'
+    plot(fig,filename=fname)
 
+#%%
 
 wcil_actual = getCountyActuals(17187)
 kcil_actual = getCountyActuals(17095)
 
 countyTotalGraph(wcil_actual, 'Warren County')
 countyTotalGraph(kcil_actual, 'Knox County')
+countyTotalGraphPer100k(wcil_actual, 'Warren County')
+countyTotalGraphPer100k(kcil_actual, 'Knox County')
+
 
 
 #%%
@@ -130,51 +136,58 @@ prev = readDataset(prev_models, ['5_1xhold','5_2xhold','nochange'])
 
 #%%
 
+def totalsProjections(actual,projection,name):
+    lowertotal = projection['report_2.5'].cumsum().rename('report_2.5_total')
+    uppertotal = projection['report_97.5'].cumsum().rename('report_97.5_total')
+    medtotal = projection['report_50'].cumsum().rename('report_50_total')
+    start_proj = projection.index[0]
+    tot_at_start = actual.loc[start_proj-pd.Timedelta(1,unit='D')]['Total Positive']
+    proj_max_total = uppertotal[-1] + tot_at_start
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=actual.index,
+                             y=actual['Total Positive'],
+                             mode='lines',
+                             fill=None,
+                             line_color=px.colors.sequential.Blues[5],
+                             name = 'Actual Case Totals',
+                             showlegend=False
+                             ))
+    fig.add_trace(go.Scatter(x=lowertotal.index,
+                             y=lowertotal+tot_at_start,
+                             mode='lines',
+                             fill=None,
+                             line_color=px.colors.sequential.Blues[3],
+                             showlegend=False
+                             ))
+    fig.add_trace(go.Scatter(x=uppertotal.index,
+                             y=uppertotal+tot_at_start,
+                             mode='lines',
+                             fill='tonexty',
+                             line_color=px.colors.sequential.Blues[3],
+                             showlegend=False                         
+                             ))
+    fig.add_trace(go.Scatter(x=medtotal.index,
+                             y=medtotal+tot_at_start,
+                             mode='lines',
+                             fill=None,
+                             line_color=px.colors.sequential.Blues[4],
+                             showlegend=False                         
+                             ))
+    fig.update_layout(yaxis={'range':(0,proj_max_total+50)},
+                      title="Total Case Projections for " + name)
+    fname = 'graphics/'+name.replace(' ','_')+'_totalprojections.html'
+    plot(fig,filename=fname)
+    
+
+#%%
+
 # Total Cases with Projections
-
 wcil_curr = curr.loc[17187,'5_2xbeta']
-lowertotal = wcil_curr['report_2.5'].cumsum().rename('report_2.5_total')
-uppertotal = wcil_curr['report_97.5'].cumsum().rename('report_97.5_total')
-medtotal = wcil_curr['report_50'].cumsum().rename('report_50_total')
-wcil_curr = pd.concat([wcil_curr,lowertotal,uppertotal,medtotal],axis=1)
+kcil_curr = curr.loc[17095,'5_2xbeta']
 
-start_proj = wcil_curr.index[0]
-tot_at_start = wcil_actual.loc[start_proj-pd.Timedelta(1,unit='D')]['Total Positive']
-proj_max_total = wcil_curr['report_97.5_total'][-1] + tot_at_start
+totalsProjections(wcil_actual, wcil_curr, 'Warren County')
+totalsProjections(kcil_actual, kcil_curr, 'Knox County')
 
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=wcil_actual.index,
-                         y=wcil_actual['Total Positive'],
-                         mode='lines',
-                         fill=None,
-                         line_color=px.colors.sequential.Blues[5],
-                         name = 'Actual Case Totals',
-                         showlegend=False
-                         ))
-fig.add_trace(go.Scatter(x=wcil_curr.index,
-                         y=wcil_curr['report_2.5_total']+tot_at_start,
-                         mode='lines',
-                         fill=None,
-                         line_color=px.colors.sequential.Blues[3],
-                         showlegend=False
-                         ))
-fig.add_trace(go.Scatter(x=wcil_curr.index,
-                         y=wcil_curr['report_97.5_total']+tot_at_start,
-                         mode='lines',
-                         fill='tonexty',
-                         line_color=px.colors.sequential.Blues[3],
-                         showlegend=False                         
-                         ))
-fig.add_trace(go.Scatter(x=wcil_curr.index,
-                         y=wcil_curr['report_50_total']+tot_at_start,
-                         mode='lines',
-                         fill=None,
-                         line_color=px.colors.sequential.Blues[4],
-                         showlegend=False                         
-                         ))
-fig.update_layout(yaxis={'range':(0,proj_max_total+50)},
-                  title="Total Cases")
-plot(fig,filename='graphics/wc_total_projection.html')
 
 #%%
 
