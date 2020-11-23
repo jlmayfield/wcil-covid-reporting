@@ -56,9 +56,9 @@ cmap = {demo_daily.columns[i]:clrs[i] for i in range(len(demo_daily.columns))}
 deathcats = death_total.iloc[-1]
 deathcats = (deathcats[ deathcats > 0 ]).index
 
-death_daily = death_daily[deathcats]
-death_total = death_total[deathcats]
-death_weeks = death_weeks[deathcats]
+death_daily = death_daily[deathcats].astype(int)
+death_total = death_total[deathcats].astype(int)
+death_weeks = death_weeks[deathcats].astype(int)
 
 
 #%%
@@ -77,7 +77,7 @@ for i in range(0,len(cats)):
                          fill='tonexty',
                          stackgroup='one'                         
                          ))
-fig.update_layout(title="Total Cases",
+fig.update_layout(title="Total COVID-19 Cases in Warren County",
                   legend=dict(
                       yanchor="top",                     
                       y=0.99,
@@ -85,7 +85,7 @@ fig.update_layout(title="Total Cases",
                       x=0.01)                  
                       )    
     
-plot(fig,filename='graphics/CumulativeCases_demos.html')    
+#plot(fig,filename='graphics/CumulativeCases_demos.html')    
 
 #%%
 
@@ -103,7 +103,7 @@ for i in range(0,len(cats)):
                          fill='tonexty',
                          stackgroup='one'                         
                          ))
-fig.update_layout(title="Total Deaths",
+fig.update_layout(title="Total COVID-19 Related Deaths in Warren County",
                   legend=dict(
                       yanchor="top",
                       y=0.99,
@@ -111,7 +111,7 @@ fig.update_layout(title="Total Deaths",
                       x=0.01)                  
                       )    
     
-plot(fig,filename='graphics/CumulativeDeaths_demos.html')    
+#plot(fig,filename='graphics/CumulativeDeaths_demos.html')    
     
 #%%
 
@@ -137,7 +137,7 @@ fig.update_layout(title="Weekly Case Totals",
                       x=0.01)
                       )    
     
-plot(fig,filename='graphics/weeklyCases_demos.html')    
+#plot(fig,filename='graphics/weeklyCases_demos.html')    
 
 #%%
 
@@ -163,7 +163,7 @@ fig.update_layout(title="Weekly Case Totals",
                       x=0.01)
                       )    
     
-plot(fig,filename='graphics/weeklyDeaths_demos.html')    
+#plot(fig,filename='graphics/weeklyDeaths_demos.html')    
     
 
 #%%
@@ -174,9 +174,17 @@ cumsum_order = demo_total.iloc[-1].sort_values(ascending=False).index
 curtot = demo_total.iloc[-1].sum()
 catmax = demo_total.max().max()
 
-fig = make_subplots(rows=4,cols=3,
+fig = make_subplots(rows=6,cols=3,
                     shared_yaxes=True,
-                    subplot_titles=cumsum_order)
+                    shared_xaxes=True,
+                    specs = [[{},{},{}],
+                             [{},{},{}],
+                             [{},{},{}],
+                             [{},{},{}],
+                             [{'colspan':3,'rowspan':2},None,None],
+                             [None,None,None]],
+                    subplot_titles=list(cumsum_order)+['All Demographics']
+                    )
 for i in range(len(cumsum_order)):
     cat = cumsum_order[i]
     clr = cmap[cat]
@@ -189,10 +197,73 @@ for i in range(len(cumsum_order)):
                              marker_color=clr
                              ),
                   row = int(i/3)+1,col=int(i%3)+1)
+cats = demo_total.columns
+for i in range(0,len(cats)):
+    fig.add_trace(go.Scatter(x=demo_total.index,
+                         y=demo_total[cats[i]],
+                         mode='lines',
+                         name=cats[i],
+                         marker_color=cmap[cats[i]],
+                         fill='tonexty',
+                         stackgroup='one'                         
+                         ),
+                  row=5,col=1)    
 
 fig.update_yaxes(range=(0,catmax+10))
-fig.update_layout(title="Total Cases by Demographic Groups")
+fig.update_yaxes(range=(0,demo_daily.sum().sum() + 25),row=5)
+fig.update_layout(title="Total COVID-19 Cases by Demographic Groups",
+                  width= 1200,
+                  height= 800)
 plot(fig,filename='graphics/demototals_multiples.html')
+
+#%%
+# multiples: weekly Cases 
+complete_weeks = demo_weeks.iloc[0:-1]
+cumsum_order = demo_total.iloc[-1].sort_values(ascending=False).index
+curtot = demo_total.iloc[-1].sum()
+catmax = complete_weeks.max().max()
+
+fig = make_subplots(rows=6,cols=3,
+                    shared_yaxes=True,
+                    shared_xaxes=True,
+                    specs = [[{},{},{}],
+                             [{},{},{}],
+                             [{},{},{}],
+                             [{},{},{}],
+                             [{'colspan':3,'rowspan':2},None,None],
+                             [None,None,None]],
+                    subplot_titles= list(cumsum_order) + ['All Demographics'])
+for i in range(len(cumsum_order)):
+    cat = cumsum_order[i]
+    clr = cmap[cat]
+    fig.add_trace(go.Scatter(x=complete_weeks.index,
+                             y=complete_weeks[cat],
+                             name=cat,
+                             showlegend=False,
+                             fill='tozeroy',
+                             mode='lines',
+                             marker_color=clr
+                             ),
+                  row = int(i/3)+1,col=int(i%3)+1)
+cats = complete_weeks.columns
+for i in range(0,len(cats)):
+    fig.add_trace(go.Scatter(x=complete_weeks.index,
+                         y=complete_weeks[cats[i]],
+                         mode='lines',
+                         name=cats[i],
+                         marker_color=cmap[cats[i]],
+                         fill='tonexty',
+                         #showlegend=False,
+                         stackgroup='one'                             
+                         ),row=5,col=1)
+
+tot=complete_weeks.sum(axis=1).max()
+fig.update_yaxes(range=(0,catmax+5))
+fig.update_yaxes(range=(0,tot+10),row=5)
+fig.update_layout(title="Weekly COVID-19 Cases by Demographic Groups",
+                  width=1200,height=800
+                  )
+plot(fig,filename='graphics/demoweekl_multiples.html')
 
 #%%
 
@@ -202,9 +273,16 @@ cumsum_order = death_total.iloc[-1].sort_values(ascending=False).index
 curtot = death_total.iloc[-1].sum()
 catmax = death_total.max().max()
 R = ceil(len(deathcats) / 3 )
-fig = make_subplots(rows=R,cols=3,
+fig = make_subplots(rows=R+2,cols=3,
+                    specs=[[{},{},{}]] * R +
+                    [[{'colspan':3,'rowspan':2},None,None],
+                     [None,None,None]],                    
                     shared_yaxes=True,
-                    subplot_titles=cumsum_order)
+                    shared_xaxes=True,
+                    subplot_titles= list(cumsum_order)+
+                    ([''] * (3-len(deathcats)%3)) + 
+                    ['All Demographics']
+                    )
 for i in range(len(cumsum_order)):
     cat = cumsum_order[i]
     clr = cmap[cat]
@@ -217,7 +295,20 @@ for i in range(len(cumsum_order)):
                              marker_color=clr
                              ),
                   row = int(i/3)+1,col=int(i%3)+1)
+cats = death_total.columns
+for i in range(0,len(cats)):
+    fig.add_trace(go.Scatter(x=death_total.index,
+                         y=death_total[cats[i]],
+                         mode='lines',
+                         name=cats[i],
+                         marker_color=cmap[cats[i]],
+                         fill='tonexty',
+                         stackgroup='one'                         
+                         ),row=R+1,col=1)    
 
 fig.update_yaxes(range=(0,catmax+3))
-fig.update_layout(title="Total Deaths by Demographic Groups")
+tot = death_daily.sum().sum()
+fig.update_yaxes(range=(0,tot+2), row=R+1)
+fig.update_layout(title="Total Deaths by Demographic Groups",
+                  width=1200,height=800)
 plot(fig,filename='graphics/demototals_deaths_multiples.html')

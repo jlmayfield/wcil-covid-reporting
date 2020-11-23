@@ -234,5 +234,18 @@ with open('graphics/WCIL-TopTenWeeksDemo.txt','w') as f:
     f.close()
 
 
+#%%%
 
+# Time till 100 Cases Analysis
+
+thresholds = pd.Index([1] + list(range(0,1501,100))[1:]).rename('Threshold')
+reached = pd.Series(data = [by_day['Total Positive'].ge(t).idxmax() for t in thresholds],index=thresholds).rename('Date Reached')
+reached = reached.to_frame()
+reached['Time From Previous'] = reached['Date Reached'].diff()
+next_thresh = reached['Time From Previous'].iloc[1:].gt(pd.Timedelta(0,unit="D")).idxmin()
+tdays = reached['Date Reached'].loc[reached.index[ reached.index < next_thresh ]]
+reached = reached.loc[:next_thresh-100]
+actuals = by_day['Total Positive'].loc[tdays].astype(int)
+actuals.index = tdays.index
+reached['Total On Date'] = actuals
 
