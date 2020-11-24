@@ -237,18 +237,25 @@ def _newpos(totcases):
     daily = totcases.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
     return daily.rename('New Positive')
 
+def _newdead(totdead):
+    daily = totdead.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
+    return daily.rename('New Deaths')
+
 ## Intended use is on previously selected subset of USFacts dataset.
 
 def expandUSFData(usf_cases,pop):    
     reorg = pd.concat([usf_cases,
-                       _phase(usf_cases),                       
-                       _dayofweek(usf_cases),
-                       _ilregions(usf_cases, pop),
-                       _newpos(usf_cases['Total Positive'])],
+                       #_phase(usf_cases),                       
+                       #_dayofweek(usf_cases),
+                       #_ilregions(usf_cases, pop),
+                       _newpos(usf_cases['Total Positive']),
+                       _newdead(usf_cases['Total Deaths'])],
                       axis=1)    
     reorg = pd.concat([reorg,                       
                        _per100k(reorg['New Positive'], pop),
-                       _per100k(reorg['Total Positive'], pop)],
+                       _per100k(reorg['Total Positive'], pop),
+                       _per100k(reorg['New Deaths'], pop),
+                       _per100k(reorg['Total Deaths'], pop)],
                       axis=1)
     reorg = pd.concat([reorg,
                        _sevenDayAvg(reorg['New Positive']),
