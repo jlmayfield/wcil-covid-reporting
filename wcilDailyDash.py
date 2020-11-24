@@ -23,7 +23,7 @@ import cvdataviz as cvdv
 #%%
 
 
-population,cases = cvdp.loadusafacts()
+population,cases,deaths = cvdp.loadusafacts()
 reports_wchd,demo_wchd,_ = cvdp.loadwchd()
 
 

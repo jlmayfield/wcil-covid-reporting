@@ -30,7 +30,7 @@ import cvdataanalysis as cvda
 warren = [17187]
 p = 16981
 
-population,cases = cvdp.loadusafacts()
+population,cases,deaths = cvdp.loadusafacts()
 reports_wchd,demo_wchd,death_wchd = cvdp.loadwchd()
 reports_mc = cvdp.loadmcreports()
 
@@ -97,7 +97,7 @@ by_week = weekly(by_day).iloc[3:]
 by_month = monthly(by_day)
 
 #%%
-full_cases_usaf = cvdp.prepusafacts(cases)
+full_cases_usaf = cvdp.prepusafacts(cases,deaths)
 aoi = [17187,17095,17109]
 aoi_cases_usaf = cvda.expandUSFData(full_cases_usaf.loc[:,:,aoi], population)
 
@@ -249,3 +249,60 @@ actuals = by_day['Total Positive'].loc[tdays].astype(int)
 actuals.index = tdays.index
 reached['Total On Date'] = actuals
 
+#%%
+
+# collect time till for each benchmark 
+tot = reached.iloc[1:]['Time From Previous'].cumsum()
+for bench in [300,500]:
+    col = 'Time From Previous ('+str(bench) +')'
+    reached[col] = None
+    for t in range(bench,next_thresh,bench):
+        reached.loc[t,col] = tot.loc[t]
+        if t > bench:
+            reached.loc[t,col] = reached.loc[t,col] - tot.loc[t-bench]
+            
+
+#%%
+
+headers=['<b>Threshold</b>','<b>Date Reached</b>','<b> Actual Total </b>',
+         '<b>Days Since last Threshold</b>']
+vals = [reached.index,
+        reached['Date Reached'].apply(lambda d: str(d.date())),
+        reached['Total On Date'],
+        reached['Time From Previous'].apply(lambda d: str(d.days) + ' days')]
+vals[3].loc[1] = '--'
+
+tt100 = go.Table(header={'values':headers,
+                                 'align':'left',
+                                 'fill_color':'gainsboro'},
+                        cells={'values': vals,
+                                 'align': 'left',
+                                 'fill_color': 'whitesmoke',
+                                 'height':30})
+
+fig = go.Figure(data=tt100)
+
+fig.update_layout(title_text="Time to Accumulate 100 Cases",
+                  margin = go.layout.Margin(l=0, #left margin
+                                            r=0, #right margin
+                                            b=0, #bottom margin
+                                            t=25  #top margin
+                                            )
+                  )                  
+plot(fig,filename='graphics/timeto100.html')
+
+#%%
+
+full_usaf = cvda.expandUSFData(full_cases_usaf, population)
+
+#%%
+
+lastday = full_usaf.index[-1][0]
+lastdata = full_usaf.loc[lastday]
+lastdata['Case Rank per 100k'] = lastdata['Total Positive per 100k'].rank(ascending=False)
+lastdata['Death Rank per 100k'] = lastdata['Total Deaths per 100k'].rank(ascending=False)
+il = lastdata.loc[17].copy()
+il['Case Rank per 100k'] = il['Total Positive per 100k'].rank(ascending=False)
+il['Death Rank per 100k'] = il['Total Deaths per 100k'].rank(ascending=False)
+wcil_usa = lastdata.loc[17,17187]
+wcil_il = il.loc[17187]

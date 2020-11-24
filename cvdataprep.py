@@ -73,7 +73,12 @@ def loadusafacts(datadir='./'):
                                 'County Name':str, 'State':str,
                                 'date': np.datetime64},
                          index_col = 'countyFIPS')
-    return (population,cases)
+    deaths = pd.read_csv(datadir+'covid_deaths_usafacts.csv',
+                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
+                                'County Name':str, 'State':str,
+                                'date': np.datetime64},
+                         index_col = 'countyFIPS')
+    return (population,cases,deaths)
 
 def loadmcreports(datadir='./'):
     cases = pd.read_csv(datadir+'MC_Reports.csv',
@@ -112,7 +117,7 @@ def prepwchd(raw_wchd):
     return reorg
     
 
-def prepusafacts(raw_usafacts):
+def prepusafacts(raw_usafacts,raw_usf_deaths):
     """
     raw total casese data read from usafacts csv files into hierarchical index
     of (date,state,county).
@@ -136,5 +141,13 @@ def prepusafacts(raw_usafacts):
     reorg.index.names = ['countyFIPS','stateFIPS','date']
     reorg = reorg.reorder_levels(['date','stateFIPS','countyFIPS'])
     reorg.sort_index(inplace=True)
-    return reorg
+    result = reorg
+    reorg = raw_usf_deaths.drop(['County Name','State'],
+                                axis=1).reset_index().set_index(['countyFIPS','stateFIPS'])
+    reorg.columns= pd.to_datetime(reorg.columns)
+    reorg = reorg.stack().rename('Total Deaths').to_frame()
+    reorg.index.names = ['countyFIPS','stateFIPS','date']
+    reorg = reorg.reorder_levels(['date','stateFIPS','countyFIPS'])
+    reorg.sort_index(inplace=True)
+    return pd.concat([result,reorg],axis=1)
 
