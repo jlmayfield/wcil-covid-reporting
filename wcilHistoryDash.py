@@ -224,7 +224,7 @@ pgraph = '<p></p>'
 mdpage = ""
 header = """---
 layout: page
-title: Warren County Historical Report
+title: Warren County Historical COVID-19 Report
 permalink: /wcil-history-report/
 ---
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
