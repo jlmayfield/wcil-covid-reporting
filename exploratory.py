@@ -264,8 +264,8 @@ for bench in [300,500]:
 
 #%%
 
-headers=['<b>Threshold</b>','<b>Date Reached</b>','<b> Actual Total </b>',
-         '<b>Days Since last Threshold</b>']
+headers=['<b>Threshold</b>','<b>Date Crossed</b>','<b> Actual Total </b>',
+         '<b>Days Since last 100</b>']
 vals = [reached.index,
         reached['Date Reached'].apply(lambda d: str(d.date())),
         reached['Total On Date'],
@@ -290,6 +290,11 @@ fig.update_layout(title_text="Time to Accumulate 100 Cases",
                                             )
                   )                  
 plot(fig,filename='graphics/timeto100.html')
+div = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-TimeTo100.txt','w') as f:
+    f.write(div)
+    f.close()
+
 
 #%%
 
@@ -299,10 +304,15 @@ full_usaf = cvda.expandUSFData(full_cases_usaf, population)
 
 lastday = full_usaf.index[-1][0]
 lastdata = full_usaf.loc[lastday]
-lastdata['Case Rank per 100k'] = lastdata['Total Positive per 100k'].rank(ascending=False)
-lastdata['Death Rank per 100k'] = lastdata['Total Deaths per 100k'].rank(ascending=False)
+lastdata['Case Rank per 100k'] = lastdata['Total Positive per 100k'].rank(ascending=False,method='min')
+lastdata['Death Rank per 100k'] = lastdata['Total Deaths per 100k'].rank(ascending=False,method='min')
 il = lastdata.loc[17].copy()
-il['Case Rank per 100k'] = il['Total Positive per 100k'].rank(ascending=False)
-il['Death Rank per 100k'] = il['Total Deaths per 100k'].rank(ascending=False)
+il['Case Rank per 100k'] = il['Total Positive per 100k'].rank(ascending=False,method='min')
+il['Death Rank per 100k'] = il['Total Deaths per 100k'].rank(ascending=False,method='min')
 wcil_usa = lastdata.loc[17,17187]
 wcil_il = il.loc[17187]
+
+#%%
+
+fig = px.histogram(il,y='Total Positive per 100k')
+plot(fig)
