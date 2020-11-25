@@ -168,6 +168,15 @@ fig.update_layout(title="Weekly Case Totals",
 
 #%%
 
+# site table margins
+margs = go.layout.Margin(l=0, #left margin
+                         r=0, #right margin
+                         b=25, #bottom margin
+                         t=75  #top margin
+                         )                          
+
+#%%
+
 # multiples: cumulative Cases 
 
 cumsum_order = demo_total.iloc[-1].sort_values(ascending=False).index
@@ -213,8 +222,14 @@ fig.update_yaxes(range=(0,catmax+10))
 fig.update_yaxes(range=(0,demo_daily.sum().sum() + 25),row=5)
 fig.update_layout(title="Total COVID-19 Cases by Demographic Groups",
                   width= 1200,
-                  height= 800)
+                  height= 800,
+                  margin=margs)
 plot(fig,filename='graphics/demototals_multiples.html')
+div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-DemoTotals.txt','w') as f:
+    f.write(div_casetotal)
+    f.close()
+
 
 #%%
 # multiples: weekly Cases 
@@ -261,9 +276,14 @@ tot=complete_weeks.sum(axis=1).max()
 fig.update_yaxes(range=(0,catmax+5))
 fig.update_yaxes(range=(0,tot+10),row=5)
 fig.update_layout(title="Weekly COVID-19 Cases by Demographic Groups",
-                  width=1200,height=800
+                  width=1200,height=800,margin=margs
                   )
 plot(fig,filename='graphics/demoweekl_multiples.html')
+div_caseweek = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-DemoWeekly.txt','w') as f:
+    f.write(div_caseweek)
+    f.close()
+
 
 #%%
 
@@ -310,5 +330,32 @@ fig.update_yaxes(range=(0,catmax+3))
 tot = death_daily.sum().sum()
 fig.update_yaxes(range=(0,tot+2), row=R+1)
 fig.update_layout(title="Total Deaths by Demographic Groups",
-                  width=1200,height=800)
+                  width=1200,height=800,margin=margs)
 plot(fig,filename='graphics/demototals_deaths_multiples.html')
+div_deathtotal = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-DemoDeathTotals.txt','w') as f:
+    f.write(div_deathtotal)
+    f.close()
+    
+#%%
+
+pgraph = '<p></p>'
+mdpage = ""
+header = """---
+layout: page
+title: Warren County COVID-19 Demographic Report
+permalink: /wcil-demographics-report/
+---
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+"""
+timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
+header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+
+mdpage = header + div_casetotal + pgraph + \
+    div_caseweek + pgraph + div_deathtotal
+
+with open('docs/wcilDemographics.md','w') as f:
+    f.write(mdpage)
+    f.close()
+    
+
