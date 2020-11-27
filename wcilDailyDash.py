@@ -335,8 +335,13 @@ permalink: /wcil-daily-report/
 """
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
-
-mdpage = header + weekdiv + casetrends + pgraph +\
+tdaynote = """
+<p><small> The WCHD did not issue a report on Thanksgiving (11/26). 
+The daily totals reported here come from the IDPH reports. Both agencies reproted
+the same two day total. Case demographics were more or less porportionally distributed
+across the two days.</small></p> 
+"""
+mdpage = header + tdaynote + weekdiv + casetrends + pgraph +\
     dailyhistodiv + pgraph + weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:

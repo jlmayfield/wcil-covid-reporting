@@ -7,7 +7,7 @@ Created on Sun Sep 27 11:32:55 2020
 """
 
 import pandas as pd
-import numpy as np
+
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -22,7 +22,6 @@ MB_TOKEN = open(".mapbox_token").read()
 
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
-import cvdataviz as cvdv
 
 
 
@@ -36,20 +35,8 @@ p = 16981
 
 #%% 
 
-population = pd.read_csv('covid_county_population_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,
-                                'County Name':str, 'State':str,
-                                'population':np.int64},
-                         index_col = 'countyFIPS')
-
-cases = pd.read_csv('covid_confirmed_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
-                                'County Name':str, 'State':str},                         
-                         index_col = 'countyFIPS')
-
-reports_wchd = pd.read_csv('WCHD_Reports.csv',
-                         header=[0],index_col=0,
-                         parse_dates=True).fillna(0)
+population,cases,deaths = cvdp.loadusafacts()
+reports_wchd, demo_wchd, death_wchd = cvdp.loadwchd()
 
 data_idph = pd.read_csv('ILDPH_Reports.csv',
                         header=[0],index_col=0,
@@ -57,15 +44,15 @@ data_idph = pd.read_csv('ILDPH_Reports.csv',
 
 
 #%%
-start_date = pd.to_datetime('2020-10-04')
-end_date = pd.to_datetime('2020-11-07') #+ pd.Timedelta(1,unit='D')
+start_date = pd.to_datetime('2020-11-08')
+end_date = pd.to_datetime('2020-11-23') #+ pd.Timedelta(1,unit='D')
 
 full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 tests_wchd = full_tests_wchd.loc[:,17,17187].loc[start_date:end_date]
 tests_wchd = tests_wchd[['New Positive','New Tests']]
 
 
-full_tests_usafacts = cvdp.prepusafacts(cases).loc[:,:,[17187]]
+full_tests_usafacts = cvdp.prepusafacts(cases,deaths).loc[:,:,[17187]]
 tests_usaf = cvda.expandUSFData(full_tests_usafacts, population).loc[:,17,17187].loc[start_date:end_date]
 tests_usaf = tests_usaf[['New Positive']]
 
