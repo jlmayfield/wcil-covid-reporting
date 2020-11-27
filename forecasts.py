@@ -18,8 +18,8 @@ import cvdataanalysis as cvda
 
 #%%
 
-population, actuals = cvdp.loadusafacts()
-actuals = cvdp.prepusafacts(actuals)
+population, actuals, deaths = cvdp.loadusafacts()
+actuals = cvdp.prepusafacts(actuals, deaths)
 
 #%%
 
@@ -65,10 +65,10 @@ def countyTotalGraphPer100k(data,name):
 wcil_actual = getCountyActuals(17187)
 kcil_actual = getCountyActuals(17095)
 
-countyTotalGraph(wcil_actual, 'Warren County')
-countyTotalGraph(kcil_actual, 'Knox County')
-countyTotalGraphPer100k(wcil_actual, 'Warren County')
-countyTotalGraphPer100k(kcil_actual, 'Knox County')
+#countyTotalGraph(wcil_actual, 'Warren County')
+#countyTotalGraph(kcil_actual, 'Knox County')
+#countyTotalGraphPer100k(wcil_actual, 'Warren County')
+#countyTotalGraphPer100k(kcil_actual, 'Knox County')
 
 
 

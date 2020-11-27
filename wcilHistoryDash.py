@@ -206,7 +206,7 @@ plot(fig,filename='graphics/7daytrends-alltime.html')
 fig = px.line(by_day,x=by_day.index,y='Total Positive',
                  title='Total Positive Tests')
 fig.update_layout(margin=margs,
-                  yaxis=dict(range=(0,by_day['Total Positive'].max()+5))),
+                  yaxis=dict(range=(0,by_day['Total Positive'].max()+100))),
 tots = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/totalcases.html')
 #%%
