@@ -77,6 +77,29 @@ kcil_actual = getCountyActuals(17095)
 
 reported = ['report_2.5','report_25','report_50','report_75','report_97.5']
 newtotal = ['total_2.5','total_25','total_50','total_75','total_97.5']
+reff = ['Re_median','Re_2.5pct','Re_97.5pct','totalcases']
+
+def readREffective(dates,scenes):
+    def readone(d):
+        projs = [None] * len(scenes)
+        for i in range(len(scenes)):
+            df = pd.read_csv(d+'R_effective.csv',
+                             dtype={'FIPS':'int64'}) 
+            df['scenario'] = scenes[i]
+            df['date'] = d
+            projs[i] = df
+        projs = pd.concat(projs)
+        projs = projs.set_index(['fips','scenario','date'])
+        return projs.sort_index()            
+    dir = '../COVID-19Projection/'
+    dirs = [dir+'Projection_'+m+'/' for m in dates]    
+    projs = [readone(d) for d in dirs]
+    idxs = [p.index for p in projs]
+    keeps_idx = [idxs[i].difference(idxs[i+1]) for i in range(0,len(idxs)-1)] +\
+        [idxs[-1]]
+    keeps = [projs[i].loc[keeps_idx[i]] for i in range(0,len(keeps_idx))]
+    return pd.concat(keeps).sort_index()
+    
 
 def readLatest():
     def readone(case):
@@ -132,7 +155,9 @@ cur = oldnames[-1]
 curr = readDataset(current_models,['5_1xbeta','5_2xbeta','season4','nochange'] )
 # previous set of models. Some are missing season4 ?
 prev = readDataset(prev_models, ['5_1xhold','5_2xhold','nochange'])   
+#%%
 
+reffect = readREffective(current_models, reff)
 
 #%%
 
