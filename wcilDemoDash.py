@@ -234,8 +234,7 @@ with open('graphics/WCIL-DemoTotals.txt','w') as f:
 #%%
 # multiples: weekly Cases 
 complete_weeks = demo_weeks.iloc[0:-1]
-cumsum_order = demo_total.iloc[-1].sort_values(ascending=False).index
-curtot = demo_total.iloc[-1].sum()
+currweek_order = complete_weeks.iloc[-1].sort_values(ascending=False).index
 catmax = complete_weeks.max().max()
 
 fig = make_subplots(rows=6,cols=3,
@@ -247,9 +246,9 @@ fig = make_subplots(rows=6,cols=3,
                              [{},{},{}],
                              [{'colspan':3,'rowspan':2},None,None],
                              [None,None,None]],
-                    subplot_titles= list(cumsum_order) + ['All Demographics'])
-for i in range(len(cumsum_order)):
-    cat = cumsum_order[i]
+                    subplot_titles= list(currweek_order) + ['All Demographics'])
+for i in range(len(currweek_order)):
+    cat = currweek_order[i]
     clr = cmap[cat]
     fig.add_trace(go.Scatter(x=complete_weeks.index,
                              y=complete_weeks[cat],
