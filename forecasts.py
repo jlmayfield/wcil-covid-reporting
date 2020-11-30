@@ -89,7 +89,7 @@ def readREffective(dates,scenes):
             df['date'] = d
             projs[i] = df
         projs = pd.concat(projs)
-        projs = projs.set_index(['fips','scenario','date'])
+        projs = projs.set_index(['FIPS','scenario','date'])
         return projs.sort_index()            
     dir = '../COVID-19Projection/'
     dirs = [dir+'Projection_'+m+'/' for m in dates]    
@@ -148,7 +148,8 @@ oldnames = ['October1','October4','October8',
 # 5_1xhold,5_2xhold
 prev_models = ['October18','October22','October25',
                'October29','November1','November5','November8']            
-current_models = ['November12','November15','November19','November22'] #5_1xbeta,5_2xbeta      
+current_models = ['November12','November15','November19',
+                  'November22','November29'] #5_1xbeta,5_2xbeta      
 cur = oldnames[-1]
 
 # Most recent models
