@@ -297,8 +297,23 @@ with open('graphics/WCIL-TimeTo100.txt','w') as f:
 
 
 #%%
+start_date = pd.to_datetime('2020-11-01')
+end_date = pd.to_datetime('2020-11-30')
+full_usaf = cvda.expandUSFData(full_cases_usaf.loc[start_date:end_date], population)
 
-full_usaf = cvda.expandUSFData(full_cases_usaf, population)
+#%%
+
+nov = full_usaf[['New Positive','New Deaths','New Positive per 100k','New Deaths per 100k']]
+nov = nov.groupby('countyFIPS').sum()
+il_idx = nov.index[ (nov.index / 1000).astype(int) == 17 ]
+nov['Case Rank per 100k'] = nov['New Positive per 100k'].rank(ascending=False,method='min')
+nov['Death Rank per 100k'] = nov['New Deaths per 100k'].rank(ascending=False,method='min')
+il = nov.loc[il_idx].copy()
+il['Case Rank per 100k'] = il['New Positive per 100k'].rank(ascending=False,method='min')
+il['Death Rank per 100k'] = il['New Deaths per 100k'].rank(ascending=False,method='min')
+wcil_usa = nov.loc[17187]
+wcil_il = il.loc[17187]
+
 
 #%%
 
