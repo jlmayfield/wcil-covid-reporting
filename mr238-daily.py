@@ -315,13 +315,24 @@ permalink: /mr238-metrics/
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 """
+tdaynote = """
+<p><small> The WCHD did not issue a report on Thanksgiving (11/26). 
+The daily totals reported here come from the IDPH reports. Both agencies reproted
+the same two day total. Case demographics were more or less porportionally distributed
+across the two days.</small></p> 
+"""
+note1208 = """
+<p><small>
+WCHD Did not report negative tests on 12/8. The number reported here
+is taken from the IDPH numbers for that day. 
+</small></p>"""
 htmlblock = '{::options parse_block_html="true" /}\n\n'
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 mdpage = header + weeklydiv + '\n\n' + weekdiv  
 
 with open('mr238/MR238-Daily.txt','w') as f:
-    f.write(weeklydiv + '\n\n' + weekdiv)
+    f.write(weeklydiv + '\n\n' + weekdiv + note1208 + tdaynote)
     f.close()
     
 #with open('mr238/03-explanations.md','r') as f:
