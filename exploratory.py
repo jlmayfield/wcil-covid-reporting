@@ -331,3 +331,13 @@ wcil_il = il.loc[17187]
 
 fig = px.histogram(il,y='Total Positive per 100k')
 plot(fig)
+
+#%%
+
+day_counts = by_day['New Positive'].reset_index()
+day_counts = day_counts.groupby([day_counts['date'].apply(lambda d: d.strftime("%A")),
+               'New Positive'])
+day_counts = day_counts.size().unstack(fill_value=0).T
+
+fig = px.box(day_counts,y=day_counts.columns,points='all')
+plot(fig,filename='graphics/dailyboxes.html')
