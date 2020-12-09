@@ -332,7 +332,7 @@ header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 mdpage = header + weeklydiv + '\n\n' + weekdiv  
 
 with open('mr238/MR238-Daily.txt','w') as f:
-    f.write(weeklydiv + '\n\n' + weekdiv + note1208 + tdaynote)
+    f.write(weeklydiv + '\n\n' + weekdiv )
     f.close()
     
 #with open('mr238/03-explanations.md','r') as f:

@@ -343,12 +343,7 @@ The daily totals reported here come from the IDPH reports. Both agencies reprote
 the same two day total. Case demographics were more or less porportionally distributed
 across the two days.</small></p> 
 """
-note1208 = """
-<p><small>
-WCHD Did not report negative tests on 12/8. The number reported here
-is taken from the IDPH numbers for that day. 
-</small></p>"""
-mdpage = header + note1208 + tdaynote + weekdiv + casetrends + pgraph +\
+mdpage = header + tdaynote + weekdiv + casetrends + pgraph +\
     dailyhistodiv + pgraph + weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:
