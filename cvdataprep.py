@@ -71,12 +71,14 @@ def loadusafacts(datadir='./'):
     cases = pd.read_csv(datadir+'covid_confirmed_usafacts.csv',
                          dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
                                 'County Name':str, 'State':str,
-                                'date': np.datetime64},
+                                'date': np.datetime64,
+                                'Total Positive':np.int64},
                          index_col = 'countyFIPS')
     deaths = pd.read_csv(datadir+'covid_deaths_usafacts.csv',
                          dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
                                 'County Name':str, 'State':str,
-                                'date': np.datetime64},
+                                'date': np.datetime64,
+                                'Total Deaths':np.int64},
                          index_col = 'countyFIPS')
     return (population,cases,deaths)
 
