@@ -334,10 +334,32 @@ plot(fig)
 
 #%%
 
-day_counts = by_day['New Positive'].reset_index()
-day_counts = day_counts.groupby([day_counts['date'].apply(lambda d: d.strftime("%A")),
-               'New Positive'])
-day_counts = day_counts.size().unstack(fill_value=0).T
+day_counts = tests_wchd['New Positive'].reset_index()
+day_counts['day'] = day_counts['date'].apply(lambda d: d.strftime("%A"))
+day_counts['week'] = day_counts['date'].apply(lambda d : d.week)
+day_counts = day_counts.pivot(index='day',columns='week',values='New Positive').T
+day_counts = day_counts[['Monday','Tuesday','Wednesday',
+                         'Thursday','Friday',
+                         'Saturday','Sunday']]
+#%%
 
-fig = px.box(day_counts,y=day_counts.columns,points='all')
-plot(fig,filename='graphics/dailyboxes.html')
+past = day_counts.iloc[:-1,:].fillna(0).astype(int)
+thisweek = day_counts.iloc[-1,:]
+thisweek = thisweek[ thisweek.notna() ].astype(int)
+fig = go.Figure()
+for d in past.columns:
+    fig.add_trace(go.Box(y=past[d],
+                         showlegend=False,
+                         name=d,
+                         boxpoints='all',
+                         jitter=0.25,
+                         marker_color=px.colors.qualitative.Safe[0],
+                         ))
+fig.add_trace(go.Scatter(x=thisweek.index,y=thisweek.values,
+                         mode='markers',
+                         marker_color=px.colors.qualitative.Safe[9],
+                         marker_size = 12,
+                         name = 'This Week'))    
+fig.update_yaxes(title='Number of Cases Reported')
+fig.update_layout(title="New Cases by Day of the Week")    
+plot(fig,filename='graphics/NewCasesByDay.html')

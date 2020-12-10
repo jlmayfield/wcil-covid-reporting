@@ -323,6 +323,46 @@ fig.update_layout(
 plot(fig,filename='graphics/DailyCaseHisto.html') 
 dailyhistodiv = plot(fig, include_plotlyjs=False, output_type='div')
 
+#%%
+
+day_counts = wcil['New Positive'].reset_index()
+day_counts['day'] = day_counts['date'].apply(lambda d: d.strftime("%A"))
+day_counts['week'] = day_counts['date'].apply(lambda d : d.week)
+day_counts = day_counts.pivot(index='day',columns='week',values='New Positive').T
+day_counts = day_counts[['Monday','Tuesday','Wednesday',
+                         'Thursday','Friday',
+                         'Saturday','Sunday']]
+
+past = day_counts.iloc[:-1,:].fillna(0).astype(int)
+thisweek = day_counts.iloc[-1,:]
+thisweek = thisweek[ thisweek.notna() ].astype(int)
+fig = go.Figure()
+for d in past.columns:
+    fig.add_trace(go.Box(y=past[d],
+                         showlegend=False,
+                         name=d,
+                         boxpoints='all',
+                         jitter=0.25,
+                         marker_color=px.colors.qualitative.Safe[0],
+                         ))
+fig.add_trace(go.Scatter(x=thisweek.index,y=thisweek.values,
+                         mode='markers',
+                         marker_color=px.colors.qualitative.Safe[9],
+                         marker_size = 12,
+                         name = 'This Week'))    
+fig.update_layout(title="New Cases by Day of the Week",
+                  yaxis_title_text = 'Number of Cases Reported',
+                  margin=margs,
+                  legend=dict(
+                          yanchor="top",        
+                          xanchor="right",
+                          x = .99,
+                          y = .99,        
+                          ),
+                  height=420)    
+plot(fig,filename='graphics/NewCasesByDay.html')
+dailyboxdiv = plot(fig, include_plotlyjs=False, output_type='div')
+
 
 #%%
 
@@ -344,7 +384,7 @@ the same two day total. Case demographics were more or less porportionally distr
 across the two days.</small></p> 
 """
 mdpage = header + tdaynote + weekdiv + casetrends + pgraph +\
-    dailyhistodiv + pgraph + weeklydiv + monthlydiv
+    dailyhistodiv + pgraph + dailyboxdiv + weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:
     f.write(mdpage)
