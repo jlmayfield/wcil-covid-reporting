@@ -149,7 +149,8 @@ oldnames = ['October1','October4','October8',
 prev_models = ['October18','October22','October25',
                'October29','November1','November5','November8']            
 current_models = ['November12','November15','November19',
-                  'November22','November29'] #5_1xbeta,5_2xbeta      
+                  'November22','November29',
+                  'December3','December06','December10'] #5_1xbeta,5_2xbeta      
 cur = oldnames[-1]
 
 # Most recent models
