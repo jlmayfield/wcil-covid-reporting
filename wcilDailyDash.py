@@ -327,11 +327,11 @@ dailyhistodiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 day_counts = wcil['New Positive'].reset_index()
 day_counts['day'] = day_counts['date'].apply(lambda d: d.strftime("%A"))
-day_counts['week'] = day_counts['date'].apply(lambda d : d.week)
+day_counts['week'] = day_counts['date'].apply(lambda d : int(d.strftime("%U")))
 day_counts = day_counts.pivot(index='day',columns='week',values='New Positive').T
-day_counts = day_counts[['Monday','Tuesday','Wednesday',
+day_counts = day_counts[['Sunday','Monday','Tuesday','Wednesday',
                          'Thursday','Friday',
-                         'Saturday','Sunday']]
+                         'Saturday']]
 
 past = day_counts.iloc[:-1,:].fillna(0).astype(int)
 thisweek = day_counts.iloc[-1,:]
