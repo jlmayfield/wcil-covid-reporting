@@ -46,12 +46,12 @@ margs = go.layout.Margin(l=0, #left margin
 warren = [17187]
 p = 16981
 
-population,cases,deaths = cvdp.loadusafacts()
+#population,cases,deaths = cvdp.loadusafacts()
 reports_wchd,demo_wchd,death_wchd = cvdp.loadwchd()
-reports_mc = cvdp.loadmcreports()
+#reports_mc = cvdp.loadmcreports()
 
 
-reports_mc = cvda.expandMCData(reports_mc)
+#reports_mc = cvda.expandMCData(reports_mc)
 
 #%%
 
