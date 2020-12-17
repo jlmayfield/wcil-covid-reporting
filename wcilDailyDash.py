@@ -85,7 +85,7 @@ threemonths = monthly(wcil).iloc[-3:]
 # site table margins
 margs = go.layout.Margin(l=0, #left margin
                          r=0, #right margin
-                         b=25, #bottom margin
+                         b=35, #bottom margin
                          t=25  #top margin
                          )                          
 
@@ -383,8 +383,9 @@ The daily totals reported here come from the IDPH reports. Both agencies reprote
 the same two day total. Case demographics were more or less porportionally distributed
 across the two days.</small></p> 
 """
-mdpage = header + tdaynote + weekdiv + casetrends + pgraph +\
-    dailyhistodiv + pgraph + dailyboxdiv + weeklydiv + monthlydiv
+mdpage = header + weekdiv + casetrends + pgraph +\
+    dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
+    weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:
     f.write(mdpage)
