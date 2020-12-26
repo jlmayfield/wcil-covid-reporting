@@ -383,7 +383,12 @@ The daily totals reported here come from the IDPH reports. Both agencies reprote
 the same two day total. Case demographics were more or less porportionally distributed
 across the two days.</small></p> 
 """
-mdpage = header + weekdiv + casetrends + pgraph +\
+xmasnote = """
+<p><small> The WCHD did not issue a report on Christmas (12/25). 
+The report issued on the 26th was more or less evenly split bettween
+the two days. IDPH reports higher numbers on the 25th than the 26th.</small></p> 
+"""
+mdpage = header + xmasnote +  weekdiv + casetrends + pgraph +\
     dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv
 
