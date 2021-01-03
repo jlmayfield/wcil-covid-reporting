@@ -388,7 +388,13 @@ xmasnote = """
 The report issued on the 26th was more or less evenly split bettween
 the two days. IDPH reports higher numbers on the 25th than the 26th.</small></p> 
 """
-mdpage = header + xmasnote +  weekdiv + casetrends + pgraph +\
+nynote = """
+<p><small> The WCHD did not issue a report on New Years (1/1/21). 
+The report issued on the 2nd was more or less evenly split bettween
+the two days. IDPH also did not issue a report on 1/1 but did report 
+1/1 numbers on 1/2. Their numbers are roughly the same for both days."""
+
+mdpage = header + xmasnote + nynote + weekdiv + casetrends + pgraph +\
     dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv
 
