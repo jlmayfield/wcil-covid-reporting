@@ -327,13 +327,13 @@ dailyhistodiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 day_counts = wcil['New Positive'].reset_index()
 day_counts['day'] = day_counts['date'].apply(lambda d: d.strftime("%A"))
-day_counts['week'] = day_counts['date'].apply(lambda d : int(d.strftime("%U")))
-day_counts = day_counts.pivot(index='day',columns='week',values='New Positive').T
+day_counts['year-week'] = day_counts['date'].apply(lambda d : d.strftime("%Y-%U"))
+day_counts = day_counts.pivot(index='day',columns='year-week',values='New Positive').T
 day_counts = day_counts[['Sunday','Monday','Tuesday','Wednesday',
                          'Thursday','Friday',
                          'Saturday']]
 
-past = day_counts.iloc[:-1,:].fillna(0).astype(int)
+past = day_counts.iloc[:-1,:]#.fillna(0).astype(int)
 thisweek = day_counts.iloc[-1,:]
 thisweek = thisweek[ thisweek.notna() ].astype(int)
 fig = go.Figure()
@@ -395,7 +395,7 @@ the two days. IDPH also did not issue a report on 1/1 but did report
 1/1 numbers on 1/2. Their numbers are roughly the same for both days."""
 
 mdpage = header + xmasnote + nynote + weekdiv + casetrends + pgraph +\
-    dailyhistodiv + pgraph +\
+    dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:
