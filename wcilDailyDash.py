@@ -395,7 +395,7 @@ the two days. IDPH also did not issue a report on 1/1 but did report
 1/1 numbers on 1/2. Their numbers are roughly the same for both days."""
 
 mdpage = header + xmasnote + nynote + weekdiv + casetrends + pgraph +\
-    dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
+    dailyhistodiv + pgraph +\
     weeklydiv + monthlydiv
 
 with open('docs/wcilDaily.md','w') as f:
