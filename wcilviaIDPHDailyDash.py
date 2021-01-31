@@ -59,6 +59,7 @@ def monthly(daily):
 
 # WC Data Only, strip FIPS
 wcil = idph_daily.loc[:,17,17187]
+wcil = wcil.loc[pd.to_datetime('10/18/2020'):]
 
 ndays = 10 # fixed at 10 for now
 # get window dates
