@@ -46,6 +46,27 @@ def loadwchd(datadir='./'):
     death_wchd.columns.names = ['Sex','Age']    
     return (reports_wchd,demo_wchd,death_wchd)
 
+def loadidphdaily(datadir='./'):  
+    """
+    Read in raw data from IDPH about WC and prepare as DataFrames
+
+    Parameters
+    ----------
+    datadir : str, optional
+        Path to directory containing the CSV files. The default is './'.
+
+    Returns
+    -------
+    tots : DataFrame
+      
+
+    """
+    tots = pd.read_csv(datadir+'IDPH_Daily.csv',
+                         header=[0],index_col=0,
+                         parse_dates=True).fillna(0)
+    tots['New Vaccines'] = tots['New Vaccines'].astype(int)    
+    return tots
+
 def loadusafacts(datadir='./'):
     """
     Read in raw data from USAFacts.org. 
@@ -95,6 +116,14 @@ def loadmcreports(datadir='./'):
     return cases                        
 
 #%%
+
+def prepidphdaily(raw_idph):
+    raw_idph['countyFIPS'] = 17187
+    raw_idph['stateFIPS'] = 17
+    reorg = raw_idph.reset_index().set_index(['date','stateFIPS','countyFIPS'])
+    reorg.sort_index(inplace=True)
+    return reorg
+    
 
 def prepwchd(raw_wchd):
     """

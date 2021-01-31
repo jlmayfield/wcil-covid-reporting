@@ -139,10 +139,53 @@ def _per100k(column,pop):
     newcol = flat.set_index(['date','stateFIPS','countyFIPS'])
     newcol = newcol[column.name].rename(newname)              
     return newcol
+
     
 
 #%%
+def _totalneg(raw_idph):
+    tneg = raw_idph['Total Tests'] - raw_idph['Total Positive']
+    tneg = tneg.rename('Total Negative')
+    return tneg
 
+def _newtests(raw_idph):
+    daily = raw_idph.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
+    return daily.rename('New Tests')
+    
+
+def expandIDPHDaily(raw_idph,pop=17032):
+    expanded = pd.concat([raw_idph,
+                          _phase(raw_idph),
+                          _dayofweek(raw_idph),
+                          _totalneg(raw_idph),
+                          _newpos(raw_idph['Total Positive']),
+                          _newdead(raw_idph['Total Deaths']),
+                          _newtests(raw_idph['Total Tests'])
+                          ],
+                          axis=1)   
+    expanded = pd.concat([expanded,
+                          _newneg(expanded['Total Negative']),
+                          _newposrate(expanded)
+                          ],
+                          axis=1)
+    expanded = pd.concat([expanded,
+                          _sevenDayAvg(expanded['% New Positive']),
+                          _sevenDayAvg(expanded['New Positive']),
+                          _sevenDayPRate(expanded[['New Tests','New Positive']])],
+                          axis = 1)
+    expanded['New Positive per 100k'] = expanded['New Positive'] * 100000 / pop
+    cols = ['DayOfWeek','Phase',
+            'New Tests', 'New Positive','New Negative',
+            'New Positive per 100k', '% New Positive',
+            '7 Day Avg New Positive','7 Day Avg % New Positive',
+            'Positive Test Rate 7 Day Window',
+            'New Deaths',
+            'Total Tests','Total Positive','Total Negative',
+            'Total Deaths'
+            ]
+    return expanded[cols]
+        
+#%%
 
 def expandWCHDData(raw_wchd_data,pop=17032):
     """
@@ -236,6 +279,10 @@ def _ilregions(usf_cases,pop):
 def _newpos(totcases):
     daily = totcases.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
     return daily.rename('New Positive')
+
+def _newneg(totcases):
+    daily = totcases.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
+    return daily.rename('New Negative')
 
 def _newdead(totdead):
     daily = totdead.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
