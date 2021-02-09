@@ -1,6 +1,11 @@
+Starting January 25, 2021, the Warren County Health Department stopped issuing daily case reports and swtiched to weekly reports in order to dedicate more time to vaccine distribution. Daily case numbers, but not the demographics of those cases, are still available through the Illinois Department of Public Health. The data
+reported on this site takes case numbers from IDPH and demographics from WCHD. As a result, youth case data
+is updated on a week to week basis only.
+
+
 ## Table Descriptions
 
-This dashboard contains two tables: one for the critical weekly metrics (Weekly Metrics) and one to monitor the daily case reports for the current week (This Week). The weekly metric table lists the metrics for the current week plus the two weeks prior. *Data for the current week are provisional and will be updated as daily reports are issued by Warren County Health Department (WCHD)*. As the week progresses you may see increases or decreases in the positivity rate but all other metrics either increase or do not change.   
+This dashboard contains two tables: one for the critical weekly metrics (Weekly Metrics) and one to monitor the daily case reports for the current week (This Week). The weekly metric table lists the metrics for the current week plus the two weeks prior. *Data for the current week are provisional and will be updated as daily reports are issued by Warren County Health Department (WCHD)*. As the week progresses you may see increases or decreases in the positivity rate but all other metrics either increase or do not change.
 
 ## MR238 Metrics
 
@@ -41,4 +46,4 @@ The district has set a threshold of not more than 2 youth cases per week. *Any d
 
 ## Data Sources
 
-All data is derived from the [daily reports issued by the Warren County Health Department](http://warrencohealth.com/covid-19.html). Data is attributed to the date the WCHD report was issued. Exact date attribution on this report will differ from what the state reports as they attribute cases to the day they received the test from the lab and not the day the test was reported to the public. You can see a recent window of state data by looking at the IDPH [Regional Methodology](https://www.dph.illinois.gov/regionmetrics?regionID=2). In general, the totals over the entire pandemic agree but day-to-day distributions differ, typically by small amounts.    
+All data is derived from the [daily reports issued by the Warren County Health Department](http://warrencohealth.com/covid-19.html). Data is attributed to the date the WCHD report was issued. Exact date attribution on this report will differ from what the state reports as they attribute cases to the day they received the test from the lab and not the day the test was reported to the public. You can see a recent window of state data by looking at the IDPH [Regional Methodology](https://www.dph.illinois.gov/regionmetrics?regionID=2). In general, the totals over the entire pandemic agree but day-to-day distributions differ, typically by small amounts.

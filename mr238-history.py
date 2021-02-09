@@ -14,31 +14,21 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from plotly.offline import plot
 
-from urllib.request import urlopen
-import json
-with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
-    counties = json.load(response)
-
-MB_TOKEN = open(".mapbox_token").read()
-
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
 
+#%%
 
-# !Unknown values filled in with zeros (early reports were incomplete)
-reports_wchd = pd.read_csv('WCHD_Reports.csv',
-                         header=[0],index_col=0,
-                         parse_dates=True).fillna(0)
+wchd_last_sat = pd.to_datetime('2021-01-23')
+# Data from WCHD
+reports_wchd,demo_wchd,_ = cvdp.loadwchd()
+tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd.loc[:wchd_last_sat]))
 
-demo_wchd = pd.read_csv('WCHD_Case_Demographics.csv',
-                       skiprows=[2],
-                       header=[0,1],index_col=0,
-                       parse_dates=True).fillna(0).iloc[:,0:12]
+idphnums = cvdp.loadidphdaily()
+idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums[wchd_last_sat:]))
 
-tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
-# from IL DPH site based on cases vs casesper100k data
-p = 16981
 
+p = 17032
 
 
 #%%
@@ -156,7 +146,7 @@ def schooldaily(wchd_data,wchd_demo):
     return school
 
 def schoolweekly(daily,nweeks=1):
-    basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
+    basis = daily[['New Positive','New Tests','Youth Cases']]
     school = basis.groupby(pd.Grouper(level='date',
                                       freq=str(nweeks)+'W-SUN',
                                       closed='left',
@@ -169,54 +159,35 @@ def schoolweekly(daily,nweeks=1):
     school['Consecutive Youth Increases'] = increase_streak(school['Youth Cases'])
     return school
 
-def schoolmonthly(daily):
-    basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
-    school = basis.groupby(pd.Grouper(level='date',freq='MS',
-                                      closed='left',label='left')).sum()
-    # assume official test dates are a day prior to align with state
-    school['Cases per 100k'] = school['New Positive'] * 100000 / p
-    school['% New Positive'] = school['New Positive']/school['New Tests']
-    return school
+#%%
 
+def schooldaily_new(wchd_data,wchd_demo):
+    keepers = ['New Positive','New Tests','% New Positive']
+    school = wchd_data.loc[:,17,17187][keepers]
+    school['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
+    school['Cases per 100k'] = school['New Positive'] * 100000 / p
+    #school['Case Increases in 10 days'] = increased(school['New Positive']).rolling(10,min_periods=0).sum().astype(int)
+    #school['Youth Increases in 10 days'] = increased(school['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
+    #school['Positivity Rate Increases in 10 days'] = increased(school['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
+    return school
 
 #%%
 
 
-all_the_days = schooldaily(tests_wchd, demo_wchd)
+all_the_days = schooldaily_new(tests_wchd, demo_wchd)
+all_the_new_days = schooldaily_new(idph_daily,demo_wchd).fillna(0)
+
+really_all_the_days = pd.concat([all_the_days,all_the_new_days])
 
 # get week start date
 today = pd.to_datetime('today')
 this_sunday = pd.to_datetime(today - pd.offsets.Week(weekday=6)).date() if today.dayofweek != 6 else today.date() 
-# daily numbers for the current week
-this_week = all_the_days.loc[this_sunday:]
 
-completeweeks = all_the_days.loc[pd.to_datetime('2020-05-03'):this_sunday-pd.Timedelta(1,unit='D')]
-# weekly numbers for this week and two prior
+completeweeks = really_all_the_days.loc[pd.to_datetime('2020-05-03'):this_sunday-pd.Timedelta(1,unit='D')]
 all_the_weeks = schoolweekly(completeweeks,nweeks=1)
 
 
 
-
-#%%
-
-df = this_week.reset_index().sort_values('date',ascending=False)
-thisweek = go.Table(header={'values':['<b>Date</b>',
-                                      '<b>Positivity Rate</b>',
-                                      '<b>New Cases<br>per 100k (actual)</b>',
-                                      '<b>New Youth Cases<b>'],
-                                  'align':'left',
-                                  'fill_color':'gainsboro'},
-                             cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
-                                              styleprate_text(df['% New Positive']),
-                                              stylecp100k_text( df[['Cases per 100k','New Positive']]),
-                                              df['Youth Cases']],
-                                    'align':'left',
-                                    'fill_color':['whitesmoke',
-                                                  styleprate_cell(df['% New Positive']),
-                                                  'whitesmoke',
-                                                  'whitesmoke'],
-                                    'height': 30 }
-                           )
 
 #%%
 
@@ -232,6 +203,7 @@ clrs = ['whitesmoke',
         stylecp100k_cell(df['Cases per 100k']),
         stylestreak_cell(df['Consecutive Case Increases']),        
         styleyouth_cell(df[['Youth Cases','Consecutive Youth Increases']])]
+
 weekly_table = go.Table(header={'values':['<b>Week Start Date</b>',
                                           '<b>Positivity Rate</b>',
                                           '<b>New Cases<br>per 100k (actual)</b>',                                                                                     
@@ -265,6 +237,7 @@ div = plot(fig, include_plotlyjs=False, output_type='div')
 #with open('mr238/MR238-Historical.txt','w') as f:
 #    f.write(div)
 #    f.close()
+   
 
 
 #%%
