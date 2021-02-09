@@ -141,8 +141,8 @@ def prepwchd(raw_wchd):
         to match the usafacts data
 
     """
-    raw_wchd['countyFIPS'] = 17187
-    raw_wchd['stateFIPS'] = 17
+    raw_wchd.loc[:,'countyFIPS'] = 17187
+    raw_wchd.loc[:,'stateFIPS'] = 17
     reorg = raw_wchd.reset_index().set_index(['date','stateFIPS','countyFIPS'])
     reorg.sort_index(inplace=True)
     return reorg

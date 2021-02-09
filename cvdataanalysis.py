@@ -58,7 +58,7 @@ def _active(wchd_data):
 # **** Depends on two step computed data *** 
 
 # WC had 23 new tests on 4/22
-def _newtests(wchd_data,init=23):
+def _newtests_old(wchd_data,init=23):
     newtests = wchd_data['Total Tests'].diff()
     newtests.iloc[0] = wchd_data['New Positive'].iloc[0]
     newtests.loc[pd.to_datetime('04-22-2020')] = init
@@ -210,15 +210,15 @@ def expandWCHDData(raw_wchd_data,pop=17032):
                           _totalpos(raw_wchd_data),
                           _totaldeaths(raw_wchd_data),
                           _newrecover(raw_wchd_data)],
-                          axis=1)    
+                          axis=1)      
     expanded = pd.concat([expanded,
                           _totaltests(expanded),
                           _active(expanded)],
                          axis=1)
     expanded = pd.concat([expanded,
-                          _newtests(expanded)],axis=1)
+                          _newtests_old(expanded)],axis=1)
     expanded = pd.concat([expanded,
-                          _newneg(expanded),                         
+                          _newneg(expanded['Total Negative']),                         
                           _newposrate(expanded)],
                          axis=1)
     expanded = pd.concat([expanded,

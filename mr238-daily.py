@@ -15,42 +15,22 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from plotly.offline import plot
 
-from urllib.request import urlopen
-import json
-with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
-    counties = json.load(response)
-
-MB_TOKEN = open(".mapbox_token").read()
 
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
 
-population = pd.read_csv('covid_county_population_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,
-                                'County Name':str, 'State':str,
-                                'population':np.int64},
-                         index_col = 'countyFIPS')
+#%%
 
-cases = pd.read_csv('covid_confirmed_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
-                                'County Name':str, 'State':str,
-                                'date': np.datetime64},
-                         index_col = 'countyFIPS')
+# Data from WCHD
+reports_wchd,demo_wchd,_ = cvdp.loadwchd()
+#tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 
+# Data from IDPH
+idphnums = cvdp.loadidphdaily()
+idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums))
 
-# !Unknown values filled in with zeros (early reports were incomplete)
-reports_wchd = pd.read_csv('WCHD_Reports.csv',
-                         header=[0],index_col=0,
-                         parse_dates=True).fillna(0)
-
-demo_wchd = pd.read_csv('WCHD_Case_Demographics.csv',
-                       skiprows=[2],
-                       header=[0,1],index_col=0,
-                       parse_dates=True).fillna(0).iloc[:,0:12]
-
-tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
-# from IL DPH site based on cases vs casesper100k data
-p = 16981
+# from IL DPH site for vaccine data (1/31/21)
+p = 17032
 
 
 
@@ -158,18 +138,23 @@ def increase_streak(col):
     return streaks.rename(col.name + " Increase Streak")
 
 
-def schooldaily(wchd_data,wchd_demo):
-    keepers = ['New Positive','New Tests','New Deaths','% New Positive']
+def schooldaily(wchd_data):
+    keepers = ['New Positive','New Tests','% New Positive']
     school = wchd_data.loc[:,17,17187][keepers]
-    school['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
+    #school['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
     school['Cases per 100k'] = school['New Positive'] * 100000 / p
     school['Case Increases in 10 days'] = increased(school['New Positive']).rolling(10,min_periods=0).sum().astype(int)
-    school['Youth Increases in 10 days'] = increased(school['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
+    #school['Youth Increases in 10 days'] = increased(school['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
     school['Positivity Rate Increases in 10 days'] = increased(school['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
     return school
 
-def schoolweekly(daily,nweeks=1):
-    basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
+#%%
+def schoolweekly(daily,demo,nweeks=1):
+    basis = daily[['New Positive','New Tests']]
+    ycases = (demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
+    ycases = ycases.rename('Youth Cases')
+    ycases.index = ycases.index.rename('date')
+    basis = pd.concat([basis, ycases],axis=1)    
     school = basis.groupby(pd.Grouper(level='date',
                                       freq=str(nweeks)+'W-SUN',
                                       closed='left',
@@ -181,6 +166,8 @@ def schoolweekly(daily,nweeks=1):
     school['Consecutive Case Increases'] = increase_streak(school['New Positive'])
     school['Consecutive Youth Increases'] = increase_streak(school['Youth Cases'])
     return school
+
+#%%
 
 def schoolmonthly(daily):
     basis = daily[['New Positive','New Tests','New Deaths','Youth Cases']]
@@ -195,22 +182,23 @@ def schoolmonthly(daily):
 #%%
 
 
-all_the_days = schooldaily(tests_wchd, demo_wchd)
-# adjust for 1 day lag between state attribution and public release
-#all_the_days.index = all_the_days.index - pd.Timedelta(1,unit='D')
+all_the_days = schooldaily(idph_daily)    
 
 # get week start date
 today = pd.to_datetime('today')
 this_sunday = pd.to_datetime(today - pd.offsets.Week(weekday=6)).date() if today.dayofweek != 6 else today.date() 
-
-
-# weekly numbers for this week and two prior
-threeweeks = schoolweekly(all_the_days,nweeks=1).iloc[-3:]
-# daily numbers for the current week
 this_week = all_the_days.loc[this_sunday:]
-
 ndays = len(this_week)
 
+#%%
+
+# weekly numbers for this week and two prior
+threeweeks = schoolweekly(all_the_days,demo_wchd,nweeks=1).iloc[-3:]
+
+
+
+
+#%%
 margs = go.layout.Margin(l=0, #left margin
                          r=0, #right margin
                          b=0, #bottom margin
@@ -222,19 +210,19 @@ margs = go.layout.Margin(l=0, #left margin
 df = this_week.reset_index().sort_values('date',ascending=False)
 thisweek = go.Table(header={'values':['<b>Date</b>',
                                       '<b>Positivity Rate</b>',
-                                      '<b>New Cases<br>per 100k (actual)</b>',
-                                      '<b>New Youth Cases<b>'],
+                                      '<b>New Cases<br>per 100k (actual)</b>'
+                                      ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                              cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
                                               styleprate_text(df['% New Positive']),
-                                              stylecp100k_text( df[['Cases per 100k','New Positive']]),
-                                              df['Youth Cases']],
+                                              stylecp100k_text( df[['Cases per 100k','New Positive']])
+                                              ],
                                     'align':'left',
                                     'fill_color':['whitesmoke',
                                                   styleprate_cell(df['% New Positive']),
                                                   stylecp100k_cell(df['Cases per 100k']),
-                                                  'whitesmoke'],
+                                                 ],
                                     'height': 30 }
                            )
 
