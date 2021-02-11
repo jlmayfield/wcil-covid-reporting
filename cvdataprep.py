@@ -64,7 +64,7 @@ def loadidphdaily(datadir='./'):
     tots = pd.read_csv(datadir+'IDPH_Daily.csv',
                          header=[0],index_col=0,
                          parse_dates=True).fillna(0)
-    tots['New Vaccines'] = tots['New Vaccines'].astype(int)    
+    tots.loc[:,'New Vaccines'] = tots['New Vaccines'].astype(int)    
     return tots
 
 def loadusafacts(datadir='./'):
@@ -118,8 +118,8 @@ def loadmcreports(datadir='./'):
 #%%
 
 def prepidphdaily(raw_idph):
-    raw_idph['countyFIPS'] = 17187
-    raw_idph['stateFIPS'] = 17
+    raw_idph.loc[:,'countyFIPS'] = 17187
+    raw_idph.loc[:,'stateFIPS'] = 17
     reorg = raw_idph.reset_index().set_index(['date','stateFIPS','countyFIPS'])
     reorg.sort_index(inplace=True)
     return reorg
