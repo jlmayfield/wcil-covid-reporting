@@ -20,11 +20,15 @@ import cvdataanalysis as cvda
 #%%
 
 wchd_last_sat = pd.to_datetime('2021-01-23')
-# Data from WCHD
+# Data from WCHD & IDPH
 reports_wchd,demo_wchd,_ = cvdp.loadwchd()
-tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd.loc[:wchd_last_sat]))
 idphnums = cvdp.loadidphdaily()
-idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums[wchd_last_sat:]))
+# cutoff at date WCHD stopped daily reports
+reports_wchd = reports_wchd.loc[:wchd_last_sat]
+idphnums = idphnums[wchd_last_sat:]
+
+tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
+idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums))
 
 
 p = 17032
