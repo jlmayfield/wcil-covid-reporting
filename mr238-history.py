@@ -23,7 +23,6 @@ wchd_last_sat = pd.to_datetime('2021-01-23')
 # Data from WCHD
 reports_wchd,demo_wchd,_ = cvdp.loadwchd()
 tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd.loc[:wchd_last_sat]))
-
 idphnums = cvdp.loadidphdaily()
 idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums[wchd_last_sat:]))
 
@@ -151,12 +150,12 @@ def schoolweekly(daily,nweeks=1):
                                       freq=str(nweeks)+'W-SUN',
                                       closed='left',
                                       label='left')).sum()
-    school['Cases per 100k'] = school['New Positive'] * 100000 / p
-    school['% New Positive'] = school['New Positive']/school['New Tests']
-    school['New Positive Change'] = school['New Positive'].pct_change()
-    school['New Youth Change'] = school['Youth Cases'].pct_change()
-    school['Consecutive Case Increases'] = increase_streak(school['New Positive'])
-    school['Consecutive Youth Increases'] = increase_streak(school['Youth Cases'])
+    school.loc[:,'Cases per 100k'] = school['New Positive'] * 100000 / p
+    school.loc[:,'% New Positive'] = school['New Positive']/school['New Tests']
+    school.loc[:,'New Positive Change'] = school['New Positive'].pct_change()
+    school.loc[:,'New Youth Change'] = school['Youth Cases'].pct_change()
+    school.loc[:,'Consecutive Case Increases'] = increase_streak(school['New Positive'])
+    school.loc[:,'Consecutive Youth Increases'] = increase_streak(school['Youth Cases'])
     return school
 
 #%%
@@ -164,8 +163,8 @@ def schoolweekly(daily,nweeks=1):
 def schooldaily_new(wchd_data,wchd_demo):
     keepers = ['New Positive','New Tests','% New Positive']
     school = wchd_data.loc[:,17,17187][keepers]
-    school['Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
-    school['Cases per 100k'] = school['New Positive'] * 100000 / p
+    school.loc[:,'Youth Cases'] = (wchd_demo.T.loc[(slice(None),['0-10','10-20']),:].T).sum(axis=1).astype(int)
+    school.loc[:,'Cases per 100k'] = school['New Positive'] * 100000 / p
     #school['Case Increases in 10 days'] = increased(school['New Positive']).rolling(10,min_periods=0).sum().astype(int)
     #school['Youth Increases in 10 days'] = increased(school['Youth Cases']).rolling(10,min_periods=0).sum().astype(int)
     #school['Positivity Rate Increases in 10 days'] = increased(school['% New Positive']).rolling(10,min_periods=0).sum().astype(int)
