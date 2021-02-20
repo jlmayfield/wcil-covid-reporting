@@ -29,24 +29,27 @@ demo_daily = demo_daily.reindex(sorted(demo_daily.columns),axis=1)
 demo_daily.columns = [i[1]+ ' ' + i[0] for i in demo_daily.columns]
 demo_daily.index.name = 'date'
 
-# cumulative totals
-demo_total = demo_daily.cumsum()
+
 # weekly totals
 demo_weeks = demo_daily.groupby(pd.Grouper(level='date',
                                            freq='W-SUN',
                                            closed='left',
                                            label='left')).sum() 
+# cumulative totals
+demo_total = demo_weeks.cumsum()
 
 # same but for deaths rather than cases
 death_daily = death_wchd.copy().reorder_levels([1,0],axis=1)
 death_daily = death_daily.reindex(sorted(death_daily.columns),axis=1)
 death_daily.columns = [i[1]+ ' ' + i[0] for i in death_daily.columns]
 death_daily.index.name = 'date'
-death_total = death_daily.cumsum()
+
 death_weeks = death_daily.groupby(pd.Grouper(level='date',
                                              freq='W-SUN',
                                              closed='left',
                                              label='left')).sum() 
+
+death_total = death_weeks.cumsum()
 
 # demographic category -> color
 clrs = px.colors.sequential.algae
@@ -233,7 +236,7 @@ with open('graphics/WCIL-DemoTotals.txt','w') as f:
 
 #%%
 # multiples: weekly Cases 
-complete_weeks = demo_weeks.iloc[0:-1]
+complete_weeks = demo_weeks
 currweek_order = complete_weeks.iloc[-1].sort_values(ascending=False).index
 catmax = complete_weeks.max().max()
 
@@ -349,6 +352,15 @@ permalink: /wcil-demographics-report/
 """
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+frontmatter = """
+<p><small> The data shown here comes from reports issued by WCHD. Each data point
+on the totals graphics covers a week's worth of data. Individual demographic 
+charts are sorted such that high current values are at the top left and 
+lowest are at the bottom right. Weekly graphics are sorted by the current week.
+Total graphics are sorted by all time. 
+</p></small>
+"""
+
 
 mdpage = header + div_casetotal + pgraph + \
     div_caseweek + pgraph + div_deathtotal
