@@ -407,8 +407,13 @@ idphnote = """
 <p><small> Starting on 1/24/2021 the WCHD switched to weekly case
 reports. This site now draws daily numbers from IDPH and reports
 on that data. </small></p> """
+feb19note = """
+<p><small> On 2/19 IDPH reported a case total one fewer than 2/18.
+Presumably this is a retraction. The data for that day shows -1 
+cases. It would seem there were 0 new cases on 2/19 and one 
+fewer case in the days proceeding it. </small></p> """
 
-mdpage = header + idphnote + weekdiv + casetrends + pgraph +\
+mdpage = header + idphnote + feb19note + weekdiv + casetrends + pgraph +\
     dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv
 
