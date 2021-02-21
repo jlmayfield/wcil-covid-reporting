@@ -15,7 +15,6 @@ Created on Wed Oct  7 12:31:03 2020
 """
 
 import pandas as pd
-import numpy as np
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -31,7 +30,6 @@ MB_TOKEN = open(".mapbox_token").read()
 
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
-import cvdataviz as cvdv
 
 #%%
 # site table margins
@@ -44,7 +42,7 @@ margs = go.layout.Margin(l=0, #left margin
 
 # 17187,17 <-- Warren County, IL
 warren = [17187]
-p = 16981
+p = 17032
 
 #population,cases,deaths = cvdp.loadusafacts()
 reports_wchd,demo_wchd,death_wchd = cvdp.loadwchd()
@@ -203,10 +201,10 @@ plot(fig,filename='graphics/7daytrends-alltime.html')
 
 #%%
 
-fig = px.line(by_day,x=by_day.index,y='Total Positive',
+fig = px.line(by_week,x=by_week.index,y='Total Positive',
                  title='Total Positive Tests')
 fig.update_layout(margin=margs,
-                  yaxis=dict(range=(0,by_day['Total Positive'].max()+100))),
+                  yaxis=dict(range=(0,by_week['Total Positive'].max()+100))),
 tots = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/totalcases.html')
 #%%
