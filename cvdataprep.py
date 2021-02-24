@@ -90,18 +90,20 @@ def loadusafacts(datadir='./'):
                                 'population':np.int64},
                          index_col = 'countyFIPS')
     cases = pd.read_csv(datadir+'covid_confirmed_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
+                         dtype={'countyFIPS':np.int64,'StateFIPS':np.int64,
                                 'County Name':str, 'State':str,
                                 'date': np.datetime64,
                                 'Total Positive':np.int64},
                          index_col = 'countyFIPS')
     deaths = pd.read_csv(datadir+'covid_deaths_usafacts.csv',
-                         dtype={'countyFIPS':np.int64,'stateFIPS':np.int64,
+                         dtype={'countyFIPS':np.int64,'StateFIPS':np.int64,
                                 'County Name':str, 'State':str,
                                 'date': np.datetime64,
                                 'Total Deaths':np.int64},
                          index_col = 'countyFIPS')
-    return (population,cases,deaths)
+    return (population,
+            cases.rename(columns={"StateFIPS":"stateFIPS"}),
+            deaths.rename(columns={"StateFIPS":"stateFIPS"}))
 
 def loadmcreports(datadir='./'):
     cases = pd.read_csv(datadir+'MC_Reports.csv',
