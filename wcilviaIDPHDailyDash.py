@@ -413,7 +413,7 @@ Presumably this is a retraction. The data for that day shows -1
 cases. It would seem there were 0 new cases on 2/19 and one 
 fewer case in the days proceeding it. </small></p> """
 
-mdpage = header + idphnote + feb19note + weekdiv + casetrends + pgraph +\
+mdpage = header + idphnote + weekdiv + casetrends + pgraph +\
     dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv
 
