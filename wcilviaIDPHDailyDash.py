@@ -91,11 +91,12 @@ margs = go.layout.Margin(l=0, #left margin
 #%%
 
 df = dailywindow.reset_index().sort_values('date',ascending=False)
-daily = go.Table(header={'values':['<b>Date</b>',
+daily = go.Table(header={'values':['<b>Date</b>',                                      
                                             '<b>New Tests</b>',
                                             '<b>New Cases (per 100k)</b>',                                           
                                             '<b>Positivity Rate</b>',                                           
-                                            '<b>New Deaths</b>'
+                                            '<b>New Deaths</b>',
+                                            '<b>New Full Vaccinations'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
@@ -103,13 +104,15 @@ daily = go.Table(header={'values':['<b>Date</b>',
                                             df['New Tests'],
                                             cvdv.style_casenum(df[['New Positive','New Positive per 100k']]),
                                             cvdv.styleprate_text(df['% New Positive']),
-                                            df['New Deaths']
+                                            df['New Deaths'],
+                                            df['New Vaccinated']
                                             ],                                            
                                   'align':'left',
                                   'fill_color':['whitesmoke',
                                                 'whitesmoke',
                                                 cvdv.stylecp100k_cell(df['New Positive per 100k']),                                                                                                
                                                 cvdv.styleprate_cell(df['% New Positive']),                                                
+                                                'whitesmoke',
                                                 'whitesmoke'
                                                 ],
                                   })
@@ -368,6 +371,11 @@ fig.update_layout(title="New Cases between " +
                   height=420)    
 plot(fig,filename='graphics/NewCasesByDay.html')
 dailyboxdiv = plot(fig, include_plotlyjs=False, output_type='div')
+
+
+#%%
+
+
 
 
 #%%

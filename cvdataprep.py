@@ -64,7 +64,7 @@ def loadidphdaily(datadir='./'):
     tots = pd.read_csv(datadir+'IDPH_Daily.csv',
                          header=[0],index_col=0,
                          parse_dates=True).fillna(0)
-    tots.loc[:,'New Vaccines'] = tots['New Vaccines'].astype(int)    
+    tots.loc[:,'New Shots'] = tots['New Shots'].astype(int)    
     return tots
 
 def loadusafacts(datadir='./'):
