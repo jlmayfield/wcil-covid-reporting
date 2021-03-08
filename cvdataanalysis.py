@@ -6,7 +6,7 @@ Created on Thu Jul  9 08:51:52 2020
 @author: jlmayfield
 """
 
-
+    
 import pandas as pd
 import numpy as np
 
@@ -151,6 +151,10 @@ def _totalneg(raw_idph):
 def _newtests(raw_idph):
     daily = raw_idph.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
     return daily.rename('New Tests')
+
+def _newvacs(raw_idph):
+    daily = raw_idph.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
+    return daily.rename('New Vaccinated')
     
 
 def expandIDPHDaily(raw_idph,pop=17032):
@@ -160,7 +164,8 @@ def expandIDPHDaily(raw_idph,pop=17032):
                           _totalneg(raw_idph),
                           _newpos(raw_idph['Total Positive']),
                           _newdead(raw_idph['Total Deaths']),
-                          _newtests(raw_idph['Total Tests'])
+                          _newtests(raw_idph['Total Tests']),
+                          _newvacs(raw_idph['Total Vaccinated'])
                           ],
                           axis=1)   
     expanded = pd.concat([expanded,
@@ -171,6 +176,7 @@ def expandIDPHDaily(raw_idph,pop=17032):
     expanded = pd.concat([expanded,
                           _sevenDayAvg(expanded['% New Positive']),
                           _sevenDayAvg(expanded['New Positive']),
+                          _sevenDayAvg(expanded['New Vaccinated']),
                           _sevenDayPRate(expanded[['New Tests','New Positive']])],
                           axis = 1)
     expanded['New Positive per 100k'] = expanded['New Positive'] * 100000 / pop
@@ -181,7 +187,8 @@ def expandIDPHDaily(raw_idph,pop=17032):
             'Positive Test Rate 7 Day Window',
             'New Deaths',
             'Total Tests','Total Positive','Total Negative',
-            'Total Deaths'
+            'Total Deaths',
+            'New Vaccinated','Total Vaccinated','7 Day Avg New Vaccinated'
             ]
     return expanded[cols]
         

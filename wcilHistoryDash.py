@@ -241,6 +241,9 @@ fig.update_layout(margin=margs,
 totsdeath = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/totaldeaths.html')
 
+#%%
+
+
     #%%
 
 pgraph = '<p></p>'
