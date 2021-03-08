@@ -111,6 +111,9 @@ by_day = daily(tests_wchd,demo_wchd)
 by_week = weekly(by_day).iloc[3:]
 by_month = monthly(by_day)
 
+idphnums = cvdp.loadidphdaily()
+idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums))
+
 
 #%%
 
@@ -157,19 +160,34 @@ monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
 
+wchd_last_sat = pd.to_datetime('2021-01-23')
+wchd_day = by_day.loc[:wchd_last_sat]
+idph_day = idph_daily.loc[(wchd_last_sat+pd.to_timedelta(1,unit='D')):].loc[:,17,17187]
+
+daily = pd.concat([wchd_day[['7 Day Avg New Positive',
+                             '7 Day Avg % New Positive']],
+                   idph_day[['7 Day Avg New Positive',
+                             '7 Day Avg % New Positive']]
+                   ])
+
+#%%
 
 fig = make_subplots(specs=[[{"secondary_y": True}]])
-fig.add_trace(go.Scatter(x=by_day.index, y=by_day['7 Day Avg New Positive'],
+
+
+
+fig.add_trace(go.Scatter(x=daily.index, y=daily['7 Day Avg New Positive'],
                name="New Cases (7 day avg)"),               
-    secondary_y=False,
+    secondary_y=False
 )
 
-forpos = by_day.loc[pd.to_datetime('2020-04-30'):]
+forpos = daily.loc[pd.to_datetime('2020-04-30'):]
 fig.add_trace(
     go.Scatter(x=forpos.index, y=forpos['7 Day Avg % New Positive'],
-               name="Positivity (7 day avg)"),
-    secondary_y=True,
+               name="Positivity (7 day avg)",showlegend=False),
+    secondary_y=True
 )
+
 
 # Add figure title
 fig.update_layout(
@@ -201,18 +219,25 @@ plot(fig,filename='graphics/7daytrends-alltime.html')
 
 #%%
 
-fig = px.line(by_week,x=by_week.index,y='Total Positive',
+totpos = by_week['New Positive'].cumsum().rename('Total Positive')
+totdet = by_week['New Deaths'].cumsum().rename('Total Deaths')
+
+by_week = pd.concat([by_week,totpos,totdet],axis=1)
+
+#%%
+fig = px.area(by_week,x=by_week.index,y='Total Positive',
                  title='Total Positive Tests')
 fig.update_layout(margin=margs,
-                  yaxis=dict(range=(0,by_week['Total Positive'].max()+100))),
+                  yaxis=dict(range=(0,by_week['Total Positive'].max()+250))),
 tots = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/totalcases.html')
+
 #%%
 
-fig = px.line(by_day,x=by_day.index,y='Total Deaths',
+fig = px.area(by_week,x=by_week.index,y='Total Deaths',
                  title='Total COVID Related Deaths')
 fig.update_layout(margin=margs,
-                  yaxis=dict(range=(0,by_day['Total Deaths'].max()+5))),
+                  yaxis=dict(range=(0,by_week['Total Deaths'].max()+10))),
 totsdeath = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/totaldeaths.html')
 
