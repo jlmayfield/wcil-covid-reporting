@@ -155,6 +155,10 @@ def _newtests(raw_idph):
 def _newvacs(raw_idph):
     daily = raw_idph.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
     return daily.rename('New Vaccinated')
+
+def _pcentvac(raw_idph,pop):
+    pvac = raw_idph.groupby(by=['stateFIPS','countyFIPS']).apply(lambda g : g / pop)
+    return pvac.rename('% Vaccinated')
     
 
 def expandIDPHDaily(raw_idph,pop=17032):
@@ -165,13 +169,14 @@ def expandIDPHDaily(raw_idph,pop=17032):
                           _newpos(raw_idph['Total Positive']),
                           _newdead(raw_idph['Total Deaths']),
                           _newtests(raw_idph['Total Tests']),
-                          _newvacs(raw_idph['Total Vaccinated'])
+                          _newvacs(raw_idph['Total Vaccinated']),
+                          _pcentvac(raw_idph['Total Vaccinated'],pop)
                           ],
                           axis=1)   
     expanded = pd.concat([expanded,
                           _newneg(expanded['Total Negative']),
                           _newposrate(expanded)
-                          ],
+                         ],
                           axis=1)
     expanded = pd.concat([expanded,
                           _sevenDayAvg(expanded['% New Positive']),
@@ -188,7 +193,8 @@ def expandIDPHDaily(raw_idph,pop=17032):
             'New Deaths',
             'Total Tests','Total Positive','Total Negative',
             'Total Deaths',
-            'New Vaccinated','Total Vaccinated','7 Day Avg New Vaccinated'
+            'New Vaccinated','Total Vaccinated',
+            '7 Day Avg New Vaccinated','% Vaccinated'
             ]
     return expanded[cols]
         

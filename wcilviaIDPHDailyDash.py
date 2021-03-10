@@ -171,6 +171,15 @@ fig.update_layout(hovermode='x unified')
 
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
+#%%
+
+fig = px.area(threeweeks,x=threeweeks.index,y='% Vaccinated',
+                 title='Percentage of the Population Vaccinated')
+fig.update_layout(margin=margs,
+                  yaxis=dict(range=(0,.80)))
+pvac = plot(fig,include_plotlyjs=False,output_type='div')
+plot(fig,filename='graphics/pcentvaccinated.html')
+
 
 #%%
 df = fiveweeks.reset_index().sort_values('date',ascending=False)
@@ -422,6 +431,7 @@ cases. It would seem there were 0 new cases on 2/19 and one
 fewer case in the days proceeding it. </small></p> """
 
 mdpage = header + idphnote + weekdiv + casetrends + pgraph +\
+    pvac + pgraph +\
     dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv
 
