@@ -172,11 +172,11 @@ fig.update_layout(hovermode='x unified')
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
-
+threeweeks['% Vaccinated'] = threeweeks['% Vaccinated'] * 100
 fig = px.area(threeweeks,x=threeweeks.index,y='% Vaccinated',
                  title='Percentage of the Population Vaccinated')
 fig.update_layout(margin=margs,
-                  yaxis=dict(range=(0,.80)))
+                  yaxis=dict(range=(0,80)))
 pvac = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/pcentvaccinated.html')
 
