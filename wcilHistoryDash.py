@@ -247,12 +247,13 @@ pvacs = idph_daily.loc[:,17,17187]['% Vaccinated']
 vday1 = pvacs[ pvacs != 0 ].index[0]
 idx = pd.date_range(start = day1, end = pvacs.index[-1], freq='D')
 pvacs = pvacs.reindex(idx).fillna(0)
+pvacs = pvacs * 100
 #%%
 
 fig = px.area(pvacs,x=pvacs.index,y='% Vaccinated',
                  title='Percentage of the Population Vaccinated')
 fig.update_layout(margin=margs,
-                  yaxis=dict(range=(0,.80)))
+                  yaxis=dict(range=(0,80)))
 pvac = plot(fig,include_plotlyjs=False,output_type='div')
 plot(fig,filename='graphics/pcentvaccinated.html')
 
