@@ -172,8 +172,8 @@ fig.update_layout(hovermode='x unified')
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
-threeweeks['% Vaccinated'] = threeweeks['% Vaccinated'] * 100
-fig = px.area(threeweeks,x=threeweeks.index,y='% Vaccinated',
+forgraph = threeweeks.loc[:,'% Vaccinated'].apply(lambda x : x * 100)
+fig = px.area(forgraph,x=forgraph.index,y=forgraph,
                  title='Percentage of the Population Vaccinated')
 fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,80)))
