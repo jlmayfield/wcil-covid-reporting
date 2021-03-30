@@ -36,7 +36,8 @@ p = 17032
 
 
 def weekly(daily,nweeks=1):
-    basis = daily[['New Positive','New Tests','New Deaths','New Positive per 100k']]
+    basis = daily[['New Positive','New Tests','New Deaths','New Positive per 100k',
+                   'New Vaccinated']]
     wcil = basis.groupby(pd.Grouper(level='date',
                                       freq=str(nweeks)+'W-SUN',
                                       closed='left',
@@ -47,7 +48,8 @@ def weekly(daily,nweeks=1):
     return wcil
 
 def monthly(daily):
-    basis = daily[['New Positive','New Tests','New Deaths','New Positive per 100k']]
+    basis = daily[['New Positive','New Tests','New Deaths','New Positive per 100k',
+                   'New Vaccinated']]
     wcil = basis.groupby(pd.Grouper(level='date',freq='MS',
                                       closed='left',label='left')).sum()
     # assume official test dates are a day prior to align with state
@@ -161,7 +163,7 @@ ly_max = threeweeks['7 Day Avg New Positive'].max()
 ry_max = threeweeks['7 Day Avg % New Positive'].max()
 # Set y-axes titles
 fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
-                 range = (0,ly_max+2),
+                 range = (0,ly_max+5),
                  secondary_y=False)
 fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
                  range = (0,.5),
@@ -174,7 +176,9 @@ casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 #%%
 forgraph = threeweeks.loc[:,'% Vaccinated'].apply(lambda x : x * 100)
 fig = px.area(forgraph,x=forgraph.index,y=forgraph,
-                 title='Percentage of the Population Vaccinated')
+                 title='Percentage of the Population Vaccinated',
+                 labels={'y':'Percent Vaccinated',
+                         'date':'Date'})
 fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,80)))
 pvac = plot(fig,include_plotlyjs=False,output_type='div')
@@ -189,7 +193,8 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                             '<b>Cases per 100k</b>',
                                             '<b>New Tests</b>',
                                             '<b>Positivity Rate</b>',
-                                            '<b>New Deaths</b>'
+                                            '<b>New Deaths</b>',
+                                            '<b>New Full Vaccinations</b>'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
@@ -200,7 +205,8 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                            cvdv.stylecp100k_text(df['New Positive per 100k']),
                                            df['New Tests'],
                                            cvdv.styleprate_text(df['% New Positive']),                                           
-                                           df['New Deaths']                                                          
+                                           df['New Deaths'],
+                                           df['New Vaccinated']
                                            ],
                                  'align':'left',
                                  'fill_color':
@@ -209,6 +215,7 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                       cvdv.stylecp100k_cell(df['New Positive per 100k']),
                                       'whitesmoke',
                                       cvdv.styleprate_cell(df['% New Positive']),
+                                      'whitesmoke',
                                       'whitesmoke'
                                       ]
                                  })
@@ -229,14 +236,16 @@ cell_vals = [df['date'].apply(lambda d: d.strftime("%B")),
              df['New Positive per 100k'].apply(lambda c:'{:.1f}'.format(c)),
              df['New Tests'],
              cvdv.styleprate_text(df['% New Positive']),                         
-             df['New Deaths']]
+             df['New Deaths'],
+             df['New Vaccinated']]
 monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Month</b>',
                                             '<b>New Cases</b>',
                                             '<b>Cases per 100k</b>',
                                             '<b>New Tests</b>',
                                             '<b>Positivity Rate</b>',
-                                            '<b>New Deaths</b>'],
+                                            '<b>New Deaths</b>',
+                                            '<b>New Full Vaccinations</b>'],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                           cells={'values':cell_vals,
@@ -246,6 +255,7 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                'whitesmoke',
                                                'whitesmoke',
                                                cvdv.styleprate_cell(df['% New Positive']),
+                                               'whitesmoke',
                                                'whitesmoke']}
                           )
 
