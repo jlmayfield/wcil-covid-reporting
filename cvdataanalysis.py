@@ -301,6 +301,14 @@ def _newdead(totdead):
     daily = totdead.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
     return daily.rename('New Deaths')
 
+
+def _rankdate(col):
+    name = col.name
+    grp = col.groupby(by='date')
+    ranks = grp.rank(method='dense',ascending=False).rename(name + ' rank')
+    ptile = grp.rank(ascending=True,pct=True).rename(name + ' percentile')
+    return pd.concat([ranks,ptile],axis=1)
+
 ## Intended use is on previously selected subset of USFacts dataset.
 
 def expandUSFData(usf_cases,pop):    
@@ -316,11 +324,16 @@ def expandUSFData(usf_cases,pop):
                        _per100k(reorg['Total Positive'], pop),
                        _per100k(reorg['New Deaths'], pop),
                        _per100k(reorg['Total Deaths'], pop)],
-                      axis=1)
+                      axis=1)    
     reorg = pd.concat([reorg,
                        _sevenDayAvg(reorg['New Positive']),
                        _sevenDayAvg(reorg['New Positive per 100k'])],
                       axis=1)    
+    reorg = pd.concat([reorg,
+                       _rankdate(reorg['New Positive per 100k']),
+                       _rankdate(reorg['7 Day Avg New Positive per 100k']),
+                       _rankdate(reorg['New Deaths per 100k'])],
+                      axis=1)
     return reorg
     
 #%%
