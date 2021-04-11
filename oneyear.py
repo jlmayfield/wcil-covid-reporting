@@ -30,7 +30,7 @@ populations,usafcases,usafdeaths = cvdp.loadusafacts()
 # from IL DPH site for vaccine data (1/31/21)
 p = 17032
 
-today = pd.to_datetime('2021-04-09')
+today = pd.to_datetime('2021-04-10')
 dayone = pd.to_datetime('2020-04-10')
 wchd_lastdaily = pd.to_datetime('2021-01-24')
 
@@ -46,6 +46,35 @@ wchd_daily = wchd_daily.loc[:,17,17187]
 
 #%%
 
+overlap = idph_daily.index.intersection(wchd_daily.index)
+idph = idph_daily.loc[wchd_lastdaily + pd.Timedelta(1,unit='D'):][['New Tests','New Positive','New Vaccinated','New Deaths']]
+wchd = wchd_daily[['New Tests','New Positive','New Deaths']]
+
+yearone = pd.concat([wchd,idph]).fillna(0)
+yearone_weekly = yearone.groupby(pd.Grouper(level='date',
+                                           freq='W-SUN',
+                                           closed='left',
+                                           label='left')).sum()
+
+#%%
+
+fig = px.bar(yearone_weekly,
+              x=yearone_weekly.index,y='New Positive',
+              title='One Year of Covid-19: New Cases by Week')
+plot(fig,filename='graphics/yearone-cases.html')
+
+fig = px.bar(yearone_weekly,
+              x=yearone_weekly.index,y='New Deaths',
+              title='One Year of Covid-19: New Covid Related Deaths by Week')
+plot(fig,filename='graphics/yearone-deaths.html')
+
+fig = px.bar(yearone_weekly,
+              x=yearone_weekly.index,y='New Vaccinated',
+              title='One Year of Covid-19: New Fully Vaccinated People by Week')
+plot(fig,filename='graphics/yearone-vaccinated.html')
+
+
+#%%
 # breakout of state of IL
 IL = usafcases[usafcases['State'] == 'IL']
 ILd = usafdeaths[usafdeaths['State'] == 'IL']
