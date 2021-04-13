@@ -76,18 +76,41 @@ plot(fig,filename='graphics/yearone-vaccinated.html')
 
 #%%
 # breakout of state of IL
-IL = usafcases[usafcases['State'] == 'IL']
-ILd = usafdeaths[usafdeaths['State'] == 'IL']
+usafcases_noZero = usafcases.drop([0])
+usafcases_zeros = usafcases.loc[0]
+usafdeaths_noZero = usafdeaths.drop([0])
+usafdeaths_zeros = usafdeaths.loc[0]
+IL = usafcases_noZero[usafcases_noZero['State'] == 'IL']
+ILd = usafdeaths_noZero[usafdeaths_noZero['State'] == 'IL']
 
 #%%
 
 # National Data (with rankings)
-usaf_daily = cvda.expandUSFData(cvdp.prepusafacts(usafcases,usafdeaths),
+usaf_daily = cvda.expandUSFData(cvdp.prepusafacts(usafcases_noZero,
+                                                  usafdeaths_noZero),
                                 populations)
 # State Data (state of IL only rankings)
 usaf_IL_daily = cvda.expandUSFData(cvdp.prepusafacts(IL,ILd), populations)
 
-lastday = usaf_daily.index[-1][0]
+
+oneyear = usaf_daily.loc[:today]
     
 
 #%%
+
+# day for first reported case for every county
+firstreports = oneyear['Total Positive'].mask(oneyear['Total Positive']==0).groupby('countyFIPS').idxmin()
+firstreports = firstreports.sort_values().dropna().map(lambda r: r[0])
+# which batch they were in
+batchnum = firstreports.rank(method='dense')
+ptile = firstreports.rank(ascending=True,pct=True)
+#%%
+
+# first reported case, last instance of first case in the county
+print(firstreports.iloc[0],firstreports.iloc[-1])
+# WCIL: first case, batch, % counties still without cases
+print(firstreports[17187],batchnum[17187],ptile[17187])
+
+#%%
+
+

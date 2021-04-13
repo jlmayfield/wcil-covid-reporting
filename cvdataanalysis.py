@@ -239,7 +239,8 @@ def expandWCHDData(raw_wchd_data,pop=17032):
                           _sevenDayAvg(expanded['New Positive']),
                           _sevenDayPRate(expanded[['New Tests','New Positive']])],
                           axis = 1)
-    expanded['New Positive per 100k'] = expanded['New Positive'] * 100000 / pop
+    npp100k = (expanded['New Positive'] * 100000 / pop).rename('New Positive per 100k')
+    expanded = pd.concat([expanded,npp100k],axis=1)    
     cols = ['DayOfWeek','Phase',
             'New Tests', 'New Positive','New Negative',
             'New Positive per 100k', '% New Positive',
@@ -335,6 +336,35 @@ def expandUSFData(usf_cases,pop):
                        _rankdate(reorg['New Deaths per 100k'])],
                       axis=1)
     return reorg
+
+def expandUSFData_Weekly(usf_cases,pop):    
+    reorg = pd.concat([usf_cases,                       
+                       _newpos(usf_cases['Total Positive']),
+                       _newdead(usf_cases['Total Deaths'])],
+                      axis=1)   
+    reorg = reorg.groupby(pd.Grouper(level='date',
+                                                   freq='W-SUN',
+                                                   closed='left',
+                                                   label='left'),
+                                        as_index=False).sum()
+    return reorg
+    reorg = pd.concat([reorg,                       
+                       _per100k(reorg['New Positive'], pop),
+                       _per100k(reorg['Total Positive'], pop),
+                       _per100k(reorg['New Deaths'], pop),
+                       _per100k(reorg['Total Deaths'], pop)],
+                      axis=1)    
+    reorg = pd.concat([reorg,
+                       _sevenDayAvg(reorg['New Positive']),
+                       _sevenDayAvg(reorg['New Positive per 100k'])],
+                      axis=1)    
+    reorg = pd.concat([reorg,
+                       _rankdate(reorg['New Positive per 100k']),
+                       _rankdate(reorg['7 Day Avg New Positive per 100k']),
+                       _rankdate(reorg['New Deaths per 100k'])],
+                      axis=1)
+    return reorg
+
     
 #%%
 
