@@ -361,7 +361,9 @@ def expandUSFData_Weekly(usf_cases,pop):
     reorg = pd.concat([reorg,
                        _rankdate(reorg['New Positive per 100k']),
                        _rankdate(reorg['7 Day Avg New Positive per 100k']),
-                       _rankdate(reorg['New Deaths per 100k'])],
+                       _rankdate(reorg['New Deaths per 100k']),
+                       _rankdate(reorg['Total Positive per 100k']),
+                       _rankdate(reorg['Total Deaths per 100k'])],
                       axis=1)
     return reorg
 
