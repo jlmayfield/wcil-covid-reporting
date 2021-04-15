@@ -333,21 +333,21 @@ def expandUSFData(usf_cases,pop):
     reorg = pd.concat([reorg,
                        _rankdate(reorg['New Positive per 100k']),
                        _rankdate(reorg['7 Day Avg New Positive per 100k']),
-                       _rankdate(reorg['New Deaths per 100k'])],
+                       _rankdate(reorg['New Deaths per 100k']),
+                       _rankdate(reorg['Total Positive per 100k']),
+                       _rankdate(reorg['Total Deaths per 100k'])],
                       axis=1)
     return reorg
 
 def expandUSFData_Weekly(usf_cases,pop):    
-    reorg = pd.concat([usf_cases,                       
-                       _newpos(usf_cases['Total Positive']),
-                       _newdead(usf_cases['Total Deaths'])],
-                      axis=1)   
-    reorg = reorg.groupby(pd.Grouper(level='date',
-                                                   freq='W-SUN',
-                                                   closed='left',
-                                                   label='left'),
-                                        as_index=False).sum()
-    return reorg
+    newstuff = pd.concat([_newpos(usf_cases['Total Positive']),
+                          _newdead(usf_cases['Total Deaths'])],
+                         axis=1) 
+    newstuff = newstuff.reset_index().set_index('date').groupby(['countyFIPS','stateFIPS']).resample('W-SUN',closed='left',label='left').sum()
+    newstuff = newstuff[['New Positive','New Deaths']].reset_index().set_index(['date','stateFIPS','countyFIPS']).sort_index()
+    totstuff = usf_cases.reset_index().set_index('date').groupby(['countyFIPS','stateFIPS']).resample('W-SUN',closed='left',label='left').max()
+    totstuff = totstuff[['Total Positive','Total Deaths']].reset_index().set_index(['date','stateFIPS','countyFIPS']).sort_index()
+    reorg = pd.concat([newstuff,totstuff],axis=1)
     reorg = pd.concat([reorg,                       
                        _per100k(reorg['New Positive'], pop),
                        _per100k(reorg['Total Positive'], pop),

@@ -475,37 +475,152 @@ usafdeaths_zeros = usafdeaths.loc[0]
 IL = usafcases_noZero[usafcases_noZero['State'] == 'IL']
 ILd = usafdeaths_noZero[usafdeaths_noZero['State'] == 'IL']
 
+
+tots = cvdp.prepusafacts(usafcases_noZero,usafdeaths_noZero).loc[:today + pd.Timedelta(1,unit='D')]
+tots_il = cvdp.prepusafacts(IL,ILd).loc[:today + pd.Timedelta(1,unit='D')]
+
 #%%
 
 # National Data (with rankings)
-usaf_daily = cvda.expandUSFData(cvdp.prepusafacts(usafcases_noZero,
-                                                  usafdeaths_noZero),
-                                populations)
+usaf_weekly = cvda.expandUSFData_Weekly(tots,populations)
 # State Data (state of IL only rankings)
-usaf_IL_daily = cvda.expandUSFData(cvdp.prepusafacts(IL,ILd), populations)
+usaf_IL_weekly = cvda.expandUSFData_Weekly(tots_il, populations)
 
-#%%
-
-oneyear = usaf_daily.loc[:today + pd.Timedelta(1,unit='D')]
-oneyear_IL = usaf_IL_daily.loc[:today  + pd.Timedelta(1,unit='D')]
 
 #%%
 
 # day for first reported case for every county
-firstreports = oneyear['Total Positive'].mask(oneyear['Total Positive']==0).groupby('countyFIPS').idxmin()
+firstreports = tots['Total Positive'].mask(tots['Total Positive']==0).groupby('countyFIPS').idxmin()
 firstreports = firstreports.sort_values().dropna().map(lambda r: r[0])
+
 # which batch they were in
-batchnum = firstreports.rank(method='dense')
+batchnum = firstreports.rank(method='dense').astype(int)
 counties_before = len(batchnum[batchnum < batchnum[17187]])
 
+# first reported case, last instance of first case in the county
+print("Cases: National")
+print(firstreports.iloc[0].date(),firstreports.iloc[-1].date())
+# WCIL: first case, batch #, # counties that reported cases before 
+print(firstreports[17187].date(),batchnum[17187],counties_before,counties_before/3142)
 
-#%%
+firstreports_il = tots_il['Total Positive'].mask(tots_il['Total Positive']==0).groupby('countyFIPS').idxmin()
+firstreports_il = firstreports_il.sort_values().dropna().map(lambda r: r[0])
+# which batch they were in
+batchnum_il = firstreports_il.rank(method='dense').astype(int)
+counties_before_il = len(batchnum_il[batchnum_il < batchnum_il[17187]])
 
 # first reported case, last instance of first case in the county
-print(firstreports.iloc[0],firstreports.iloc[-1])
+print("Cases: IL")
+print(firstreports_il.iloc[0].date(),firstreports_il.iloc[-1].date())
 # WCIL: first case, batch #, # counties that reported cases before 
-print(firstreports[17187],batchnum[17187],counties_before,counties_before/3142)
+print(firstreports_il[17187].date(),batchnum_il[17187],counties_before_il,counties_before_il/102)
 
 #%%
-wcil_usa = oneyear.loc[:,17,17187]
-wcil_il = oneyear_IL.loc[:,17,17187]
+
+# day for first reported deaths for every county
+firstdeaths = tots['Total Deaths'].mask(tots['Total Deaths']==0).groupby('countyFIPS').idxmin()
+firstdeaths = firstdeaths.sort_values().dropna().map(lambda r: r[0])
+# which batch they were in
+batchnum = firstdeaths.rank(method='dense')
+counties_before = len(batchnum[batchnum < batchnum[17187]])
+
+# first reported case, last instance of first case in the county
+print("Deaths: National")
+print(firstdeaths.iloc[0],firstdeaths.iloc[-1])
+# WCIL: first case, batch #, # counties that reported cases before 
+print(firstdeaths[17187],batchnum[17187],counties_before,counties_before/3142)
+
+firstdeaths_il = tots_il['Total Deaths'].mask(tots_il['Total Deaths']==0).groupby('countyFIPS').idxmin()
+firstdeaths_il = firstdeaths_il.sort_values().dropna().map(lambda r: r[0])
+# which batch they were in
+batchnum_il = firstdeaths_il.rank(method='dense')
+counties_before_il = len(batchnum_il[batchnum_il < batchnum_il[17187]])
+
+# first reported case, last instance of first case in the county
+print("Deaths: IL")
+print(firstdeaths_il.iloc[0],firstdeaths_il.iloc[-1])
+# WCIL: first case, batch #, # counties that reported cases before 
+print(firstdeaths_il[17187],batchnum_il[17187],counties_before_il,counties_before_il/102)
+
+#%%
+
+firstweek = week_idx[0]
+wcil_usa = usaf_weekly.loc[:,17,17187].loc[firstweek:]
+wcil_il = usaf_IL_weekly.loc[:,17,17187].loc[firstweek:]
+
+
+#%%
+
+# USAFacts vs WCHD 
+
+clr0 = px.colors.qualitative.D3[0]
+clr1 = px.colors.qualitative.D3[1]
+
+fig = make_subplots(rows=2,cols=2,
+                    shared_yaxes=False,
+                    shared_xaxes=True,
+                    subplot_titles=['Total Cases: WCHD','New Cases: WCHD',
+                                    'Total Cases: USAFacts','New Cases: USAFacts']
+                    )
+fig.add_trace(go.Scatter(x=casetotals.index,
+                         y=casetotals,
+                         name = 'WCHD',
+                         showlegend=False,
+                         fill='tozeroy',
+                         mode='lines',
+                         marker_color=clr0
+                         ),
+              row=1,col=1)
+fig.add_trace(go.Scatter(x=wcil_il['Total Positive'].index,
+                         y=wcil_il['Total Positive'],
+                         name = 'USAFacts',
+                         showlegend=False,
+                         fill='tozeroy',
+                         mode='lines',
+                         marker_color=clr1
+                         ),
+              row=2,col=1)
+fig.add_trace(go.Bar(x=yearone_weekly.index,
+                     y=yearone_weekly['New Positive'],
+                     name = 'WCHD',
+                     showlegend=False,
+                     marker_color=clr0
+                    ),
+              row=1,col=2)
+fig.add_trace(go.Bar(x=wcil_il['New Positive'].index,
+                     y=wcil_il['New Positive'],
+                     name = 'USAFacts',
+                     showlegend=False,
+                     marker_color=clr1
+                         ),
+              row=2,col=2)
+fig.update_xaxes(tickvals=week_idx,title='')
+caseticks = list(range(0,int(casetotals.max())+1,500)) + [int(casetotals.max())]
+weeklycaseticks = list(yearone_weekly['New Positive'].describe()[1:].sort_values().astype(int).drop(['std','50%']))
+usafcaseticks = list(range(0,int(wcil_il['Total Positive'].max())+1,500)) + [int(wcil_il['Total Positive'].max())]
+usafweeklycaseticks = list(wcil_il['New Positive'].describe()[1:].sort_values().astype(int).drop(['std','50%']))
+fig.update_layout(title='A Comparison of WCHD Reporting vs. USAFacts.org Reporting',
+                  yaxis={'tickvals':caseticks},
+                  yaxis2={'tickvals':weeklycaseticks},
+                  yaxis3={'tickvals':usafcaseticks},
+                  yaxis4={'tickvals':usafweeklycaseticks},
+                  )
+plot(fig,filename='graphics/yearone-WCHDvUSAF.html')
+div_wchdusaf = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/yearone-WCHDvUSAF.txt','w') as f:
+    f.write(div_wchdusaf)
+    f.close()
+
+#%%
+
+# five hightest new case weeks and how they compared
+
+topfiveweeks_idx = wcil_il['New Positive'].sort_values(ascending=False).index[:5]   
+cols = ['New Positive','New Positive per 100k','New Positive per 100k rank','New Positive per 100k percentile']
+topfive_usa = wcil_usa.loc[topfiveweeks_idx][cols]
+topfive_il = wcil_il.loc[topfiveweeks_idx][cols]
+
+#%%
+
+broke90ptile_usa_idx = wcil_usa['New Positive per 100k percentile'][wcil_usa['New Positive per 100k percentile'] > .9].sort_values(ascending=False).index
+broke90ptile_il_idx = wcil_il['New Positive per 100k percentile'][wcil_il['New Positive per 100k percentile'] > .9].sort_values(ascending=False).index
