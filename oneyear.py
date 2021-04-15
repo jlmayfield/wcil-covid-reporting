@@ -42,7 +42,16 @@ margs = go.layout.Margin(l=0, #left margin
                          b=25, #bottom margin
                          t=75  #top margin
                          )                          
+tmargs = go.layout.Margin(l=0, #left margin
+                         r=0, #right margin
+                         b=25, #bottom margin
+                         t=25  #top margin
+                         )                          
 
+
+
+width= 1000
+height= 800
 
 #%%
 
@@ -194,7 +203,6 @@ fig.add_trace(go.Bar(x=vax_weekly.index,
                      marker_color=clr
                      ),
               row=3,col=2)
-fig.update_xaxes(tickvals=week_idx,title='')
 caseticks = list(range(0,int(casetotals.max())+1,500)) + [int(casetotals.max())]
 weeklycaseticks = list(yearone_weekly['New Positive'].describe()[1:].sort_values().astype(int).drop(['std','50%']))
 deathticks = list(range(0,int(deathtotals.max())+1,10)) + [int(deathtotals.max())]
@@ -211,7 +219,10 @@ fig.update_layout(title="A Week-by-Week Look at One Year of COVID-19 in Warren C
                   yaxis3={'tickvals':deathticks},
                   yaxis4={'tickvals':weeklydeathticks},
                   yaxis5={'tickvals':vaxticks},
-                  yaxis6={'tickvals':weeklyvaxticks},)
+                  yaxis6={'tickvals':weeklyvaxticks},
+                  xaxis5={'tickvals':week_idx},   
+                  xaxis6={'tickvals':week_idx},   
+                  margin=margs,height=height,width=width)
 plot(fig,filename='graphics/yearone-CasesDeathsVax.html')
 div_casedeathvax = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/yearone-CasesDeathsVax.txt','w') as f:
@@ -319,9 +330,7 @@ fig.update_yaxes(range=(0,curtot + 25),row=5)
           
               
 fig.update_layout(title="One Year of COVID-19 in Warren County, IL: Total Cases by Demographic Groups",
-                  width= 1200,
-                  height= 800,
-                  margin=margs,
+                  margin=margs,height=height,width=width,
                   xaxis10={'tickvals': []},
                   xaxis11={'tickvals': []},
                   xaxis12={'tickvals': []},
@@ -382,7 +391,7 @@ tot= int(complete_weeks.sum(axis=1).max())
 fig.update_yaxes(range=(0,catmax+5))
 fig.update_yaxes(range=(0,tot+10),row=5)
 fig.update_layout(title="One Year of COVID-19 in Warren County, IL: Weekly Cases by Demographic Groups",
-                  width=1200,height=800,margin=margs,
+                  margin=margs,height=height,width=width,
                   xaxis10={'tickvals': []},
                   xaxis11={'tickvals': []},
                   xaxis12={'tickvals': []},
@@ -449,7 +458,7 @@ fig.update_yaxes(range=(0,catmax+3))
 tot = death_daily.sum().sum()
 fig.update_yaxes(range=(0,tot+2), row=R+1)
 fig.update_layout(title="One Year of COVID-19 in Warren County, IL: Total Deaths by Demographic Groups",
-                  width=1200,height=800,margin=margs,
+                  margin=margs,height=height,width=width,
                   xaxis4={'tickvals': []},
                   xaxis5={'tickvals': []},
                   xaxis6={'tickvals': []},
@@ -486,61 +495,6 @@ usaf_weekly = cvda.expandUSFData_Weekly(tots,populations)
 # State Data (state of IL only rankings)
 usaf_IL_weekly = cvda.expandUSFData_Weekly(tots_il, populations)
 
-
-#%%
-
-# day for first reported case for every county
-firstreports = tots['Total Positive'].mask(tots['Total Positive']==0).groupby('countyFIPS').idxmin()
-firstreports = firstreports.sort_values().dropna().map(lambda r: r[0])
-
-# which batch they were in
-batchnum = firstreports.rank(method='dense').astype(int)
-counties_before = len(batchnum[batchnum < batchnum[17187]])
-
-# first reported case, last instance of first case in the county
-print("Cases: National")
-print(firstreports.iloc[0].date(),firstreports.iloc[-1].date())
-# WCIL: first case, batch #, # counties that reported cases before 
-print(firstreports[17187].date(),batchnum[17187],counties_before,counties_before/3142)
-
-firstreports_il = tots_il['Total Positive'].mask(tots_il['Total Positive']==0).groupby('countyFIPS').idxmin()
-firstreports_il = firstreports_il.sort_values().dropna().map(lambda r: r[0])
-# which batch they were in
-batchnum_il = firstreports_il.rank(method='dense').astype(int)
-counties_before_il = len(batchnum_il[batchnum_il < batchnum_il[17187]])
-
-# first reported case, last instance of first case in the county
-print("Cases: IL")
-print(firstreports_il.iloc[0].date(),firstreports_il.iloc[-1].date())
-# WCIL: first case, batch #, # counties that reported cases before 
-print(firstreports_il[17187].date(),batchnum_il[17187],counties_before_il,counties_before_il/102)
-
-#%%
-
-# day for first reported deaths for every county
-firstdeaths = tots['Total Deaths'].mask(tots['Total Deaths']==0).groupby('countyFIPS').idxmin()
-firstdeaths = firstdeaths.sort_values().dropna().map(lambda r: r[0])
-# which batch they were in
-batchnum = firstdeaths.rank(method='dense')
-counties_before = len(batchnum[batchnum < batchnum[17187]])
-
-# first reported case, last instance of first case in the county
-print("Deaths: National")
-print(firstdeaths.iloc[0],firstdeaths.iloc[-1])
-# WCIL: first case, batch #, # counties that reported cases before 
-print(firstdeaths[17187],batchnum[17187],counties_before,counties_before/3142)
-
-firstdeaths_il = tots_il['Total Deaths'].mask(tots_il['Total Deaths']==0).groupby('countyFIPS').idxmin()
-firstdeaths_il = firstdeaths_il.sort_values().dropna().map(lambda r: r[0])
-# which batch they were in
-batchnum_il = firstdeaths_il.rank(method='dense')
-counties_before_il = len(batchnum_il[batchnum_il < batchnum_il[17187]])
-
-# first reported case, last instance of first case in the county
-print("Deaths: IL")
-print(firstdeaths_il.iloc[0],firstdeaths_il.iloc[-1])
-# WCIL: first case, batch #, # counties that reported cases before 
-print(firstdeaths_il[17187],batchnum_il[17187],counties_before_il,counties_before_il/102)
 
 #%%
 
@@ -604,6 +558,7 @@ fig.update_layout(title='A Comparison of WCHD Reporting vs. USAFacts.org Reporti
                   yaxis2={'tickvals':weeklycaseticks},
                   yaxis3={'tickvals':usafcaseticks},
                   yaxis4={'tickvals':usafweeklycaseticks},
+                  margin=margs,height=height,width=width
                   )
 plot(fig,filename='graphics/yearone-WCHDvUSAF.html')
 div_wchdusaf = plot(fig, include_plotlyjs=False, output_type='div')
@@ -613,14 +568,211 @@ with open('graphics/yearone-WCHDvUSAF.txt','w') as f:
 
 #%%
 
-# five hightest new case weeks and how they compared
 
-topfiveweeks_idx = wcil_il['New Positive'].sort_values(ascending=False).index[:5]   
+# day for first reported case for every county
+firstreports = tots['Total Positive'].mask(tots['Total Positive']==0).groupby('countyFIPS').idxmin()
+firstreports = firstreports.sort_values().dropna().map(lambda r: r[0])
+
+# which batch they were in
+batchnum = firstreports.rank(method='dense').astype(int)
+case_counties_before_us = len(batchnum[batchnum < batchnum[17187]])
+
+firstreports_il = tots_il['Total Positive'].mask(tots_il['Total Positive']==0).groupby('countyFIPS').idxmin()
+firstreports_il = firstreports_il.sort_values().dropna().map(lambda r: r[0])
+# which batch they were in
+batchnum_il = firstreports_il.rank(method='dense').astype(int)
+case_counties_before_il = len(batchnum_il[batchnum_il < batchnum_il[17187]])
+
+# day for first reported deaths for every county
+firstdeaths = tots['Total Deaths'].mask(tots['Total Deaths']==0).groupby('countyFIPS').idxmin()
+firstdeaths = firstdeaths.sort_values().dropna().map(lambda r: r[0])
+# which batch they were in
+batchnum = firstdeaths.rank(method='dense')
+death_counties_before_us = len(batchnum[batchnum < batchnum[17187]])
+# same thing but for deaths
+firstdeaths_il = tots_il['Total Deaths'].mask(tots_il['Total Deaths']==0).groupby('countyFIPS').idxmin()
+firstdeaths_il = firstdeaths_il.sort_values().dropna().map(lambda r: r[0])
+# which batch they were in
+batchnum_il = firstdeaths_il.rank(method='dense')
+death_counties_before_il = len(batchnum_il[batchnum_il < batchnum_il[17187]])
+
+labels = ['<b>Date of First Report</b>','<b>US Counties Reporting Before (%)</b>','<b>IL Counties Reporting Before (%)</b>']
+deets = [labels,
+         [firstreports[17187].strftime('%b %d, %Y'), #date of first case
+         '{0} ({1:.1%})'.format(case_counties_before_us,case_counties_before_us/3142), #US counties before,%tile
+         '{0} ({1:.1%})'.format(case_counties_before_il,case_counties_before_il/102)], #IL counties before, %tile
+         [firstdeaths[17187].strftime('%b %d, %Y'), #date of first death
+         '{0} ({1:.1%})'.format(death_counties_before_us,death_counties_before_us/3142), #US counties before, %tile
+         '{0} ({1:.1%})'.format(death_counties_before_il,death_counties_before_il/102)]] #IL counties before, %tile
+
+          
+timing_fig = go.Table(header={'values':['','<b>Cases</b>','<b>Deaths</b>'],
+                              'align':'center',
+                              'fill_color':'gainsboro'},
+                      cells={'values':deets,                                  
+                                      'align':'center',
+                                      'fill_color':['gainsboro',
+                                                    'whitesmoke',
+                                                    'whitesmoke']
+                                      })
+fig = go.Figure(data=timing_fig)
+fig.update_layout(title="Warren County's First Reported Case and Death Compared to Nation and State",
+                  #margin = tmargs,
+                  height=300,
+                  width=width
+                  )
+plot(fig,filename='graphics/yearone-timing.html')
+timingdiv = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/yearone-timing.txt','w') as f:
+    f.write(timingdiv)
+    f.close()
+
+
+#%%
+
+
+totcols = ['Total Positive','Total Positive per 100k','Total Positive per 100k percentile',
+           'Total Deaths','Total Deaths per 100k','Total Deaths per 100k percentile']
+labels = ['<b>Total</b>','<b>Total per 100k</b>','<b>National Percentile</b>','<b>State Percentile</b>']
+vals = [labels,
+        ['{:.0f}'.format(wcil_il.iloc[-1]['Total Positive']),
+        '{:.1f}'.format(wcil_il.iloc[-1]['Total Positive per 100k']),
+        '{:.1%}'.format(wcil_usa.iloc[-1]['Total Positive per 100k percentile']),
+        '{:.1%}'.format(wcil_il.iloc[-1]['Total Positive per 100k percentile'])],
+        ['{:.0f}'.format(wcil_il.iloc[-1]['Total Deaths']),
+        '{:.1f}'.format(wcil_il.iloc[-1]['Total Deaths per 100k']),
+        '{:.1%}'.format(wcil_usa.iloc[-1]['Total Deaths per 100k percentile']),
+        '{:.1%}'.format(wcil_il.iloc[-1]['Total Deaths per 100k percentile'])]]
+
+totals_fig = go.Table(header={'values':['','<b>Cases</b>','<b>Deaths</b>'],
+                              'align':'center',
+                              'fill_color':'gainsboro'},
+                      cells={'values':vals,                                  
+                                      'align':'center',
+                                      'fill_color':['gainsboro',
+                                                    'whitesmoke',
+                                                    'whitesmoke']
+                                      })
+fig = go.Figure(data=totals_fig)
+fig.update_layout(title="Warren County's Total Reported Case and Death Compared to Nation and State",
+                  margin = margs,
+                  height=325,
+                  width=width
+                  )
+plot(fig,filename='graphics/yearone-totals.html')
+totaldiv = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/yearone-total.txt','w') as f:
+    f.write(totaldiv)
+    f.close()
+
+
+#%%
+
+# ten hightest new case weeks and how they compared nationally and state-wide
+
+toptenweeks_idx = wcil_il['New Positive'].sort_values(ascending=False).index[:10]   
 cols = ['New Positive','New Positive per 100k','New Positive per 100k rank','New Positive per 100k percentile']
-topfive_usa = wcil_usa.loc[topfiveweeks_idx][cols]
-topfive_il = wcil_il.loc[topfiveweeks_idx][cols]
+topten_usa = wcil_usa.loc[toptenweeks_idx][cols]
+topten_il = wcil_il.loc[toptenweeks_idx][cols]
 
+
+toptenweeks_fig = go.Table(header={'values':['<b>Week Starting Date</b>',                                      
+                                   '<b>New Cases</b>',
+                                   '<b>New Cases (per 100k)</b>',                                           
+                                   '<b>National Percentile</b>',
+                                   '<b>Illinois Percentile</b>'],
+                                  'align':'center',
+                                  'fill_color':'gainsboro'},
+                 cells={'values':[toptenweeks_idx.map(lambda d: d.strftime("%b %d, %Y")),
+                                  topten_il['New Positive'],
+                                  topten_il['New Positive per 100k'].apply(lambda n: "{:.1f}".format(n)),
+                                  topten_usa['New Positive per 100k percentile'].apply(lambda n: "{:.1%}".format(n)),
+                                  topten_il['New Positive per 100k percentile'].apply(lambda n: "{:.1%}".format(n)),
+                                 ],                                            
+                                  'align':'center',
+                                  'fill_color':['whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke'
+                                                ],
+                                  })
+
+fig = go.Figure(data=toptenweeks_fig)
+fig.update_layout(title="Top Ten Highest Case Counts in a Single Week",
+                  margin = margs,
+                  height=350,
+                  width=width
+                  )
+plot(fig,filename='graphics/yearone-topten.html')
+toptendiv = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/yearone-topten.txt','w') as f:
+    f.write(toptendiv)
+    f.close()
+
+#%%
+
+abv50 = wcil_usa[wcil_usa['New Positive per 100k percentile'] >= .5]
+abv50_il = wcil_il[wcil_il['New Positive per 100k percentile'] >= .5]
+print(len(abv50), len(abv50_il))
+abv75 = wcil_usa[wcil_usa['New Positive per 100k percentile'] >= .75] 
+abv75_il = wcil_il[wcil_il['New Positive per 100k percentile'] >= .75]
+print(len(abv75), len(abv75_il))
+undr25 = wcil_usa[wcil_usa['New Positive per 100k percentile'] <= .25] 
+undr25_il = wcil_il[wcil_il['New Positive per 100k percentile'] <= .25]
+print(len(undr25), len(undr25_il))
 #%%
 
 broke90ptile_usa_idx = wcil_usa['New Positive per 100k percentile'][wcil_usa['New Positive per 100k percentile'] > .9].sort_values(ascending=False).index
 broke90ptile_il_idx = wcil_il['New Positive per 100k percentile'][wcil_il['New Positive per 100k percentile'] > .9].sort_values(ascending=False).index
+
+eyesonus_idx = broke90ptile_usa_idx.union(broke90ptile_il_idx)
+
+cols = ['New Positive','New Positive per 100k','New Positive per 100k rank','New Positive per 100k percentile']
+eyeson_usa = wcil_usa.loc[eyesonus_idx][cols]
+eyeson_il = wcil_il.loc[eyesonus_idx][cols]
+
+
+eyeson_fig = go.Table(header={'values':['<b>Week Starting Date</b>',                                      
+                                   '<b>New Cases</b>',
+                                   '<b>New Cases (per 100k)</b>',                                           
+                                   '<b>National Percentile</b>',
+                                   '<b>Illinois Percentile</b>'],
+                                  'align':'center',
+                                  'fill_color':'gainsboro'},
+                 cells={'values':[eyesonus_idx.map(lambda d: d.strftime("%b %d, %Y")),
+                                  eyeson_il['New Positive'],
+                                  eyeson_il['New Positive per 100k'].apply(lambda n: "{:.1f}".format(n)),
+                                  eyeson_usa['New Positive per 100k percentile'].apply(lambda n: "{:.1%}".format(n)),
+                                  eyeson_il['New Positive per 100k percentile'].apply(lambda n: "{:.1%}".format(n)),
+                                 ],                                            
+                                  'align':'center',
+                                  'fill_color':['whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke',
+                                                'whitesmoke'
+                                                ],
+                                  })
+
+fig = go.Figure(data=eyeson_fig)
+fig.update_layout(title="Weeks where Warren County, IL was in the 90th percentile for Reported Cases",
+                  margin = margs,
+                  height=300,
+                  width=width
+                  )
+plot(fig,filename='graphics/yearone-eyeson.html')
+eyesondiv = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/yearone-eyeson.txt','w') as f:
+    f.write(eyesondiv)
+    f.close()
+
+#%%
+
+apr19 = usaf_weekly.loc[eyesonus_idx[0]]
+asbad19 = apr19[apr19['New Positive per 100k'] >= wcil_il.loc[eyesonus_idx[0]]['New Positive per 100k']]
+apr26 = usaf_weekly.loc[eyesonus_idx[1]]
+asbad26 = apr26[apr26['New Positive per 100k'] >= wcil_il.loc[eyesonus_idx[1]]['New Positive per 100k']]
+
+print(len(asbad19)-1,len(asbad26)-1)
+print(len(asbad19.loc[17,:])-1,len(asbad26.loc[17,:])-1)
