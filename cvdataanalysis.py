@@ -239,7 +239,8 @@ def expandWCHDData(raw_wchd_data,pop=17032):
                           _sevenDayAvg(expanded['New Positive']),
                           _sevenDayPRate(expanded[['New Tests','New Positive']])],
                           axis = 1)
-    expanded['New Positive per 100k'] = expanded['New Positive'] * 100000 / pop
+    npp100k = (expanded['New Positive'] * 100000 / pop).rename('New Positive per 100k')
+    expanded = pd.concat([expanded,npp100k],axis=1)    
     cols = ['DayOfWeek','Phase',
             'New Tests', 'New Positive','New Negative',
             'New Positive per 100k', '% New Positive',
@@ -301,6 +302,14 @@ def _newdead(totdead):
     daily = totdead.groupby(by=['stateFIPS','countyFIPS']).diff().fillna(0).astype(int)
     return daily.rename('New Deaths')
 
+
+def _rankdate(col):
+    name = col.name
+    grp = col.groupby(by='date')
+    ranks = grp.rank(method='dense',ascending=False).rename(name + ' rank')
+    ptile = grp.rank(ascending=True,pct=True).rename(name + ' percentile')
+    return pd.concat([ranks,ptile],axis=1)
+
 ## Intended use is on previously selected subset of USFacts dataset.
 
 def expandUSFData(usf_cases,pop):    
@@ -316,12 +325,48 @@ def expandUSFData(usf_cases,pop):
                        _per100k(reorg['Total Positive'], pop),
                        _per100k(reorg['New Deaths'], pop),
                        _per100k(reorg['Total Deaths'], pop)],
-                      axis=1)
+                      axis=1)    
     reorg = pd.concat([reorg,
                        _sevenDayAvg(reorg['New Positive']),
                        _sevenDayAvg(reorg['New Positive per 100k'])],
                       axis=1)    
+    reorg = pd.concat([reorg,
+                       _rankdate(reorg['New Positive per 100k']),
+                       _rankdate(reorg['7 Day Avg New Positive per 100k']),
+                       _rankdate(reorg['New Deaths per 100k']),
+                       _rankdate(reorg['Total Positive per 100k']),
+                       _rankdate(reorg['Total Deaths per 100k'])],
+                      axis=1)
     return reorg
+
+def expandUSFData_Weekly(usf_cases,pop):    
+    newstuff = pd.concat([_newpos(usf_cases['Total Positive']),
+                          _newdead(usf_cases['Total Deaths'])],
+                         axis=1) 
+    newstuff = newstuff.reset_index().set_index('date').groupby(['countyFIPS','stateFIPS']).resample('W-SUN',closed='left',label='left').sum()
+    newstuff = newstuff[['New Positive','New Deaths']].reset_index().set_index(['date','stateFIPS','countyFIPS']).sort_index()
+    totstuff = usf_cases.reset_index().set_index('date').groupby(['countyFIPS','stateFIPS']).resample('W-SUN',closed='left',label='left').max()
+    totstuff = totstuff[['Total Positive','Total Deaths']].reset_index().set_index(['date','stateFIPS','countyFIPS']).sort_index()
+    reorg = pd.concat([newstuff,totstuff],axis=1)
+    reorg = pd.concat([reorg,                       
+                       _per100k(reorg['New Positive'], pop),
+                       _per100k(reorg['Total Positive'], pop),
+                       _per100k(reorg['New Deaths'], pop),
+                       _per100k(reorg['Total Deaths'], pop)],
+                      axis=1)    
+    reorg = pd.concat([reorg,
+                       _sevenDayAvg(reorg['New Positive']),
+                       _sevenDayAvg(reorg['New Positive per 100k'])],
+                      axis=1)    
+    reorg = pd.concat([reorg,
+                       _rankdate(reorg['New Positive per 100k']),
+                       _rankdate(reorg['7 Day Avg New Positive per 100k']),
+                       _rankdate(reorg['New Deaths per 100k']),
+                       _rankdate(reorg['Total Positive per 100k']),
+                       _rankdate(reorg['Total Deaths per 100k'])],
+                      axis=1)
+    return reorg
+
     
 #%%
 

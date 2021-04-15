@@ -143,9 +143,11 @@ def prepwchd(raw_wchd):
         to match the usafacts data
 
     """
-    raw_wchd.loc[:,'countyFIPS'] = 17187
-    raw_wchd.loc[:,'stateFIPS'] = 17
-    reorg = raw_wchd.reset_index().set_index(['date','stateFIPS','countyFIPS'])
+    idx = raw_wchd.index
+    fipss = pd.DataFrame(data=[[17187,17] for i in idx],
+                         index=idx,columns=['countyFIPS','stateFIPS'])
+    allofit = pd.concat([raw_wchd,fipss],axis=1)
+    reorg = allofit.reset_index().set_index(['date','stateFIPS','countyFIPS'])
     reorg.sort_index(inplace=True)
     return reorg
     

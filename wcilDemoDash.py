@@ -43,6 +43,7 @@ death_daily = death_wchd.copy().reorder_levels([1,0],axis=1)
 death_daily = death_daily.reindex(sorted(death_daily.columns),axis=1)
 death_daily.columns = [i[1]+ ' ' + i[0] for i in death_daily.columns]
 death_daily.index.name = 'date'
+death_daily = death_daily.reindex(demo_daily.index).fillna(0)
 
 death_weeks = death_daily.groupby(pd.Grouper(level='date',
                                              freq='W-SUN',
@@ -203,9 +204,9 @@ for i in range(len(cumsum_order)):
     fig.add_trace(go.Scatter(x=demo_total.index,
                              y=demo_total[cat],
                              name=cat,
-                             showlegend=False,
-                             fill='tozeroy',
-                             mode='lines',
+                                 showlegend=False,
+                                 fill='tozeroy',
+                                 mode='lines',
                              marker_color=clr
                              ),
                   row = int(i/3)+1,col=int(i%3)+1)
