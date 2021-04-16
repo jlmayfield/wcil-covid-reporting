@@ -42,13 +42,6 @@ margs = go.layout.Margin(l=0, #left margin
                          b=25, #bottom margin
                          t=75  #top margin
                          )                          
-tmargs = go.layout.Margin(l=0, #left margin
-                         r=0, #right margin
-                         b=25, #bottom margin
-                         t=25  #top margin
-                         )                          
-
-
 
 width= 1000
 height= 800
