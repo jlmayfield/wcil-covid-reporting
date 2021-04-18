@@ -139,14 +139,14 @@ weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
     #%%
 
-fig = px.bar(by_month,x=[d.month_name() for d in by_month.index],
+fig = px.bar(by_month,x=by_month.index,
              y=['Age 0-10','Age 10-20','Age 20-40',
                 'Age 40-60','Age 60-80','Age 80-100'],
              labels={'variable':'Age Range','x':'Month','value':'New Cases'},             
              title="New Cases Per Month",
              color_discrete_sequence=px.colors.qualitative.Safe
              )
-fig.update_xaxes(tickvals=[d.month_name() for d in by_month.index])
+#fig.update_xaxes(tickvals=[d.month_name() + ' ' + str(d.year) for d in by_month.index])
 fig.update_traces(hovertemplate='%{y} cases<extra></extra>')
 fig.update_layout(legend=dict(
         yanchor="top",
