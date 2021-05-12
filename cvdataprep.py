@@ -6,8 +6,12 @@ Created on Thu Jul  9 08:49:09 2020
 @author: jlmayfield
 """
 
+import itertools
+import math
 import pandas as pd
 import numpy as np
+import requests as rq
+
 
 
 #%%
@@ -186,3 +190,168 @@ def prepusafacts(raw_usafacts,raw_usf_deaths):
     reorg.sort_index(inplace=True)
     return pd.concat([result,reorg],axis=1)
 
+#%%
+
+
+#https://idph.illinois.gov/DPHPublicInformation/Help
+class IDPHDataCollector:
+    apibase = 'https://idph.illinois.gov/DPHPublicInformation/'
+    countyHistAPI = 'api/COVID/GetCountyHistorical?countyName='
+    demo = 'api/COVID/GetCountyDemographicsOverTime?countyName='
+    demo2 = 'api/COVID/GetCountyDemographics?countyName='
+    vac = 'api/COVIDVaccine/getVaccineAdministration?CountyName='
+    @staticmethod
+    def getCountyTotals(county='Warren'):
+        colmap = {'reportDate':'date',
+                  'CountyName':'county',
+                  'tested':'Total Tests',
+                  'confirmed_cases':'Total Positive',
+                  'deaths':'Total Deaths',
+                  }
+        tots = rq.get(IDPHDataCollector.apibase+\
+                      IDPHDataCollector.countyHistAPI+county)
+        d = pd.DataFrame(tots.json()['values']).rename(columns=colmap)
+        d['date'] = pd.to_datetime(d['date'])
+        d = d.set_index('date')
+        # date 4/11 appears twice? 
+        d= d[~d.index.duplicated(keep='first')]
+        d.index.name = 'date'        
+        return d
+    @staticmethod
+    def getCountyAgeHistory(county='Warren',numdays=7):
+        age = rq.get(IDPHDataCollector.apibase+\
+                     IDPHDataCollector.demo+\
+                     county+'&DaysIncluded='+str(numdays))
+        colmap = {'ReportDate':'date',
+                  'tested':'Total Tests',
+                  'count':'Total Positive',
+                  #'deaths':'New Deaths',
+                  'CaseCountChange':'New Positive',
+                  'age_group':'Age Group'}
+        e = pd.DataFrame(age.json()).rename(columns=colmap)
+        e['date'] = pd.to_datetime(e['date'])
+        e = e.set_index(['date','Age Group'])
+        return e
+    @staticmethod
+    def getDailyDemo(day,county='Warren'):
+        demo = rq.get(IDPHDataCollector.apibase+\
+                      IDPHDataCollector.demo2+county+\
+                      '&reportDate='+day)        
+        if demo.ok:
+            demo = demo.json()
+        else:
+            return pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([])
+        # extract date for report. should be equiv to day...
+        date = pd.to_datetime("{}-{}-{}".format(demo['lastUpdatedDate']['year'],
+                                                demo['lastUpdatedDate']['month'],
+                                                demo['lastUpdatedDate']['day']))
+        # extract all the demographic totals        
+        f = demo['county_demographics'][0]
+        # county level information (total-totals, name, etc) This should be duplicate info
+        county_data = pd.DataFrame(dict(itertools.islice(f.items(),3)),
+                                   index=[date]).rename(columns={'confirmed_cases':'Total Positive',
+                                                                 'total_tested':'Total Tests'})
+        # for real just the demo data this time
+        demo_data = f['demographics']
+        # organize age,race, and gender
+        age = demo_data['age']
+        if len(age) > 0:
+            age_data = pd.DataFrame(demo_data['age'],
+                                index=pd.Series([date]*len(demo_data['age']),name='date'))
+            age_data['age_group'] = age_data['age_group'].str.strip()
+            age_data = age_data.drop('race',axis=1).reset_index().set_index(['date','age_group'])
+            age_data = age_data.rename(columns={'count':'Total Positive',
+                                                'tested':'Total Tested'})
+        else:
+            age_data = pd.DataFrame([])
+        race = demo_data['race']
+        if len(race) > 0:
+            race_data = pd.DataFrame(demo_data['race'],
+                                     index=pd.Series([date]*len(demo_data['race']),name='date'))
+            race_data['description'] = race_data['description'].str.strip()
+            race_data = race_data.rename(columns={'description':'race_group',
+                                                  'count':'Total Positive',
+                                                  'tested':'Total Tested'})
+            race_data = race_data.drop('color',axis=1).reset_index().set_index(['date',
+                                                                                'race_group'])                         
+        else:
+            race_data = pd.DataFrame([])
+        gender = demo_data['gender']
+        if len(gender) > 0:
+            gender_data = pd.DataFrame(demo_data['gender'],
+                                       index=pd.Series([date]*len(demo_data['gender']),name='date'))
+            gender_data = gender_data.rename(columns={'description':'sex_group',
+                                                      'count':'Total Positive',
+                                                      'tested':'Total Tested'})
+            gender_data = gender_data.drop('color',axis=1).reset_index().set_index(['date',
+                                                                                    'sex_group'])
+        else:
+            gender_data = pd.DataFrame([])
+        return county_data,age_data,race_data,gender_data
+    @staticmethod
+    def getDemoHistory(first,last,county='Warren'):        
+        dates = pd.date_range(first,last)
+        tot = len(dates)
+        done = 0
+        def log_progress(d):
+            res = IDPHDataCollector.getDailyDemo(str(d.date()))
+            nonlocal done
+            nonlocal tot
+            done = done + 1
+            if done % max(1,int(math.ceil(tot * 0.05))) == 0:
+                print('{:.1%} {}'.format(done/tot,d.date()))
+            return res            
+        hist = [ log_progress(d) for d in dates ]
+        cnty = pd.concat([ t[0] for t in hist ])
+        ages = pd.concat([ t[1] for t in hist ])
+        races = pd.concat([ t[2] for t in hist ])
+        genders = pd.concat([ t[3] for t in hist ])
+        return cnty,ages,races,genders   
+    @staticmethod
+    def getVaccineHistory(county='Warren'):
+        vacframe = rq.get(IDPHDataCollector.apibase+\
+                          IDPHDataCollector.vac+\
+                          county).json()
+        vachist = pd.DataFrame(vacframe['VaccineAdministration'])
+        vachist = vachist.rename(columns={'CountyName':'County',
+                                          'AdministeredCount':'Total Vaccines Administered',
+                                          'AdministeredCountChange':'New Vaccines Administered',
+                                          'PersonsFullyVaccinated':"Total Fully Vaccinated",
+                                          'PersonsFullyVaccinatedChange':"New Fully Vaccinated",
+                                          'Report_Date':'date'
+                                          })
+        vachist['date'] = pd.to_datetime(vachist['date'])
+        vachist = vachist.set_index('date')
+        vachist = vachist.drop(['AdministeredCountRollAvg','AllocatedDoses',
+                                'Population','PctVaccinatedPopulation',
+                                'LHDReportedInventory','CommunityReportedInventory',
+                                'TotalReportedInventory','InventoryReportDate'],axis=1)
+        cty = vachist[['County','Latitude','Longitude']]
+        vachist = vachist.drop(['County','Latitude','Longitude'],axis=1)
+        return cty,vachist
+    @staticmethod 
+    def flattenDemoReport(report):
+        tocols = report.unstack()
+        newcols = ['{} {}'.format(c[0],c[1]) for c in tocols.columns]
+        tocols.columns = newcols
+        return tocols
+    @staticmethod
+    def totals(county='Warren'):
+        tots = IDPHDataCollector.getCountyTotals(county)
+        _,vacs = IDPHDataCollector.getVaccineHistory(county)
+        firstday = min(tots.index[0],vacs.index[0])
+        lastday = max(tots.index[-1],vacs.index[-1])
+        idx = pd.date_range(firstday,lastday)
+        if not idx.difference(tots.index).empty:
+            tots = tots.reindex(index=pd.date_range(firstday,tots.index[-1])).fillna(0)
+        if not idx.difference(vacs.index).empty:
+            vacs = vacs.reindex(index=pd.date_range(firstday,vacs.index[-1])).fillna(0)        
+        alltots = pd.concat([tots,vacs],axis=1)
+        # empty rows are all zeros -- 3/23/20 is sus
+        missing = alltots[ (alltots.T == 0).all() ]        
+        if len(missing) > 0:
+            prev_idx = missing.index - pd.to_timedelta(1,unit='D')
+            prevs = alltots.loc[prev_idx]
+            prevs.index = missing.index
+            alltots.loc[missing.index] = prevs       
+        return alltots
