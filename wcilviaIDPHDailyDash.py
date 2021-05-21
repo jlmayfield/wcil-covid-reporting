@@ -174,7 +174,7 @@ fig.update_layout(hovermode='x unified')
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
-forgraph = threeweeks.loc[:,'% Vaccinated'].apply(lambda x : x * 100)
+forgraph = threeweeks.loc[:,'% Vaccinated'].apply(lambda x : x * 100).dropna()
 fig = px.area(forgraph,x=forgraph.index,y=forgraph,
                  title='Percentage of the Population Vaccinated',
                  labels={'y':'Percent Vaccinated',
@@ -390,10 +390,6 @@ fig.update_layout(title="New Cases between " +
                   height=420)    
 plot(fig,filename='graphics/NewCasesByDay.html')
 dailyboxdiv = plot(fig, include_plotlyjs=False, output_type='div')
-
-
-#%%
-
 
 
 
