@@ -65,11 +65,23 @@ def loadidphdaily(datadir='./'):
       
 
     """
-    tots = pd.read_csv(datadir+'IDPH_Daily.csv',
+    tots = pd.read_csv(datadir+'IDPH_DAILY_WARREN.csv',
                          header=[0],index_col=0,
-                         parse_dates=True).fillna(0)
-    tots.loc[:,'New Shots'] = tots['New Shots'].astype(int)    
+                         parse_dates=True)#.fillna(0)
+    #tots.loc[:,'New Shots'] = tots['New Shots'].astype(int)    
     return tots
+
+def loadidphdemos(datadir='./'):
+    age = pd.read_csv(datadir+'IDPH_AGEDEMO_WARREN.csv',
+                      index_col=[0,1],
+                      parse_dates=True)
+    race = pd.read_csv(datadir+'IDPH_RACEDEMO_WARREN.csv',
+                      index_col=[0,1],
+                      parse_dates=True)
+    gender = pd.read_csv(datadir+'IDPH_GENDERDEMO_WARREN.csv',
+                      index_col=[0,1],
+                      parse_dates=True)
+    return age,race,gender
 
 def loadusafacts(datadir='./'):
     """
@@ -212,7 +224,7 @@ class IDPHDataCollector:
                       IDPHDataCollector.countyHistAPI+county)
         d = pd.DataFrame(tots.json()['values']).rename(columns=colmap)
         d['date'] = pd.to_datetime(d['date'])
-        d = d.set_index('date')
+        d = d.set_index('date')        
         # date 4/11 appears twice? 
         d= d[~d.index.duplicated(keep='first')]
         d.index.name = 'date'        
@@ -314,10 +326,10 @@ class IDPHDataCollector:
                           county).json()
         vachist = pd.DataFrame(vacframe['VaccineAdministration'])
         vachist = vachist.rename(columns={'CountyName':'County',
-                                          'AdministeredCount':'Total Vaccines Administered',
-                                          'AdministeredCountChange':'New Vaccines Administered',
-                                          'PersonsFullyVaccinated':"Total Fully Vaccinated",
-                                          'PersonsFullyVaccinatedChange':"New Fully Vaccinated",
+                                          'AdministeredCount':'Total Shots',
+                                          'AdministeredCountChange':'New Shots',
+                                          'PersonsFullyVaccinated':"Total Vaccinated",
+                                          'PersonsFullyVaccinatedChange':"New Vaccinated",
                                           'Report_Date':'date'
                                           })
         vachist['date'] = pd.to_datetime(vachist['date'])
@@ -353,5 +365,40 @@ class IDPHDataCollector:
             prev_idx = missing.index - pd.to_timedelta(1,unit='D')
             prevs = alltots.loc[prev_idx]
             prevs.index = missing.index
-            alltots.loc[missing.index] = prevs       
+            alltots.loc[missing.index] = prevs           
         return alltots
+    def writeTotals(county='Warren'):
+        tots = IDPHDataCollector.totals(county)
+        tosheet = tots[['Total Positive','Total Tests','Total Deaths',
+                        'New Shots','Total Vaccinated']]
+        tosheet.to_csv('IDPH_DAILY_'+county.upper()+'.csv',
+                       index_label='date')
+    def writeDemos(firstday,lastday,county='Warren'):
+        county_data,age_data,race_data,gender_data = IDPHDataCollector.getDemoHistory(firstday, lastday, county)
+        age_data.to_csv('IDPH_AGEDEMO_'+county.upper()+'.csv')
+        race_data.to_csv('IDPH_RACEDEMO_'+county.upper()+'.csv')
+        gender_data.to_csv('IDPH_GENDERDEMO_'+county.upper()+'.csv')
+    def updateDemos(county="Warren"):        
+        agecurr = pd.read_csv('IDPH_AGEDEMO_'+county.upper()+'.csv',
+                              index_col=[0,1])
+        racecurr = pd.read_csv('IDPH_RACEDEMO_'+county.upper()+'.csv',
+                              index_col=[0,1])
+        gendercurr = pd.read_csv('IDPH_GENDERDEMO_'+county.upper()+'.csv',
+                              index_col=[0,1])
+        nextday_file = pd.to_datetime(agecurr.index.get_level_values('date')[-1])+pd.Timedelta(1,unit='D')
+        today = pd.to_datetime(pd.to_datetime('today').date())
+        if today - nextday_file > pd.Timedelta(0,unit='D'):
+            print('Updating with '+str(nextday_file.date())+' until '+\
+                  str(today.date()))
+            ctynew,agenew,racenew,gendernew = IDPHDataCollector.getDemoHistory(nextday_file,
+                                                                               today,county)
+            agecurr = pd.concat([agecurr,agenew])
+            racecurr = pd.concat([racecurr,racenew])
+            gendercurr = pd.concat([gendercurr,gendernew])
+            agecurr.to_csv('IDPH_AGEDEMO_'+county.upper()+'.csv')
+            racecurr.to_csv('IDPH_RACEDEMO_'+county.upper()+'.csv')
+            gendercurr.to_csv('IDPH_GENDERDEMO_'+county.upper()+'.csv')
+    
+        
+
+    
