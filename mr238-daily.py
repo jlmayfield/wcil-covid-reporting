@@ -284,7 +284,7 @@ fig.add_trace(weekly_table,row=1,col=1)
 fig.update_layout(title_text="MR-238 Daily Dashboard",                  
                   height=800)
 
-plot(fig,filename='graphics/MR238-Daily.html')
+#plot(fig,filename='graphics/MR238-Daily.html')
 #div = plot(fig, include_plotlyjs=False, output_type='div')
 #with open('mr238/MR238-Daily.txt','w') as f:
 #    f.write(div)

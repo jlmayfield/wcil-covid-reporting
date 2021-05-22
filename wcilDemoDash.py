@@ -228,7 +228,7 @@ fig.update_layout(title="Total COVID-19 Cases by Demographic Groups",
                   width= 1200,
                   height= 800,
                   margin=margs)
-plot(fig,filename='graphics/demototals_multiples.html')
+#plot(fig,filename='graphics/demototals_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-DemoTotals.txt','w') as f:
     f.write(div_casetotal)
@@ -281,7 +281,7 @@ fig.update_yaxes(range=(0,tot+10),row=5)
 fig.update_layout(title="Weekly COVID-19 Cases by Demographic Groups",
                   width=1200,height=800,margin=margs
                   )
-plot(fig,filename='graphics/demoweekl_multiples.html')
+#plot(fig,filename='graphics/demoweekl_multiples.html')
 div_caseweek = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-DemoWeekly.txt','w') as f:
     f.write(div_caseweek)
@@ -334,7 +334,7 @@ tot = death_daily.sum().sum()
 fig.update_yaxes(range=(0,tot+2), row=R+1)
 fig.update_layout(title="Total Deaths by Demographic Groups",
                   width=1200,height=800,margin=margs)
-plot(fig,filename='graphics/demototals_deaths_multiples.html')
+#plot(fig,filename='graphics/demototals_deaths_multiples.html')
 div_deathtotal = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-DemoDeathTotals.txt','w') as f:
     f.write(div_deathtotal)
