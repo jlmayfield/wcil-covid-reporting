@@ -235,7 +235,7 @@ fig.update_layout(title_text="MR-238 Metric History",
                   )
 
 
-plot(fig,filename='graphics/MR238-Historical.html')
+#plot(fig,filename='graphics/MR238-Historical.html')
 div = plot(fig, include_plotlyjs=False, output_type='div')
 #with open('mr238/MR238-Historical.txt','w') as f:
 #    f.write(div)

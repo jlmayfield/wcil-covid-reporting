@@ -182,7 +182,7 @@ fig = px.area(forgraph,x=forgraph.index,y=forgraph,
 fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,80)))
 pvac = plot(fig,include_plotlyjs=False,output_type='div')
-plot(fig,filename='graphics/pcentvaccinated.html')
+#plot(fig,filename='graphics/pcentvaccinated.html')
 
 
 #%%
@@ -345,7 +345,7 @@ fig.update_layout(
 )
 
 
-plot(fig,filename='graphics/DailyCaseHisto.html') 
+#plot(fig,filename='graphics/DailyCaseHisto.html') 
 dailyhistodiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
@@ -388,7 +388,7 @@ fig.update_layout(title="New Cases between " +
                           y = .99,        
                           ),
                   height=420)    
-plot(fig,filename='graphics/NewCasesByDay.html')
+#plot(fig,filename='graphics/NewCasesByDay.html')
 dailyboxdiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 

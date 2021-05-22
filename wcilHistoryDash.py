@@ -134,7 +134,7 @@ fig.update_layout(legend=dict(
                      x=0.01),
     hovermode='x unified',
     margin=margs)
-plot(fig,filename='graphics/WCIL-AllWeeksDemos.html')
+#plot(fig,filename='graphics/WCIL-AllWeeksDemos.html')
 weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
     #%%
@@ -155,7 +155,7 @@ fig.update_layout(legend=dict(
         x=0.01),
     hovermode='x unified',
     margin=margs)
-plot(fig,filename='graphics/WCIL-AllMonthsDemos.html')
+#plot(fig,filename='graphics/WCIL-AllMonthsDemos.html')
 monthlydiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
@@ -215,7 +215,7 @@ fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>",
                  secondary_y=True)
 fig.update_layout(margin=margs)
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
-plot(fig,filename='graphics/7daytrends-alltime.html')
+#plot(fig,filename='graphics/7daytrends-alltime.html')
 
 #%%
 
@@ -230,7 +230,7 @@ fig = px.area(by_week,x=by_week.index,y='Total Positive',
 fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,by_week['Total Positive'].max()+250))),
 tots = plot(fig,include_plotlyjs=False,output_type='div')
-plot(fig,filename='graphics/totalcases.html')
+#plot(fig,filename='graphics/totalcases.html')
 
 #%%
 
@@ -239,7 +239,7 @@ fig = px.area(by_week,x=by_week.index,y='Total Deaths',
 fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,by_week['Total Deaths'].max()+10))),
 totsdeath = plot(fig,include_plotlyjs=False,output_type='div')
-plot(fig,filename='graphics/totaldeaths.html')
+#plot(fig,filename='graphics/totaldeaths.html')
 
 #%%
 day1 = wchd_day.index[0]
@@ -255,7 +255,7 @@ fig = px.area(pvacs,x=pvacs.index,y='% Vaccinated',
 fig.update_layout(margin=margs,
                   yaxis=dict(range=(0,80)))
 pvac = plot(fig,include_plotlyjs=False,output_type='div')
-plot(fig,filename='graphics/pcentvaccinated.html')
+#plot(fig,filename='graphics/pcentvaccinated.html')
 
     #%%
 
