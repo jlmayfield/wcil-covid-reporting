@@ -357,6 +357,10 @@ class IDPHDataCollector:
         if not idx.difference(tots.index).empty:
             tots = tots.reindex(index=pd.date_range(firstday,tots.index[-1])).fillna(0)
         if not idx.difference(vacs.index).empty:
+            #DuPage has duplicate entries that seem to just be one
+            # lacking shot totals. So.. fix.?
+            if vacs.index.duplicated().any():
+                vacs = vacs.groupby(vacs.index).max()
             vacs = vacs.reindex(index=pd.date_range(firstday,vacs.index[-1])).fillna(0)        
         alltots = pd.concat([tots,vacs],axis=1)
         # empty rows are all zeros -- 3/23/20 is sus
@@ -373,6 +377,15 @@ class IDPHDataCollector:
                         'New Shots','Total Vaccinated']]
         tosheet.to_csv('IDPH_DAILY_'+county.upper()+'.csv',
                        index_label='date')
+    def writeTotalsAll(counties=['Warren']):
+        datadir = 'IDPH_Totals/'
+        for county in counties:
+            print("Scraping "+county)
+            tots = IDPHDataCollector.totals(county)
+            tosheet = tots[['Total Positive','Total Tests','Total Deaths',
+                            'New Shots','Total Vaccinated']]
+            tosheet.to_csv(datadir+'IDPH_DAILY_'+county.upper()+'.csv',
+                           index_label='date')            
     def writeDemos(firstday,lastday,county='Warren'):
         county_data,age_data,race_data,gender_data = IDPHDataCollector.getDemoHistory(firstday, lastday, county)
         age_data.to_csv('IDPH_AGEDEMO_'+county.upper()+'.csv')
