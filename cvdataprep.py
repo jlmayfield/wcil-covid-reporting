@@ -212,6 +212,7 @@ class IDPHDataCollector:
     demo = 'api/COVID/GetCountyDemographicsOverTime?countyName='
     demo2 = 'api/COVID/GetCountyDemographics?countyName='
     vac = 'api/COVIDVaccine/getVaccineAdministration?CountyName='
+    currvac = 'api/COVIDVaccine/getVaccineAdministrationCurrent?CountyName='
     @staticmethod
     def getCountyTotals(county='Warren'):
         colmap = {'reportDate':'date',
@@ -335,11 +336,11 @@ class IDPHDataCollector:
         vachist['date'] = pd.to_datetime(vachist['date'])
         vachist = vachist.set_index('date')
         vachist = vachist.drop(['AdministeredCountRollAvg','AllocatedDoses',
-                                'Population','PctVaccinatedPopulation',
+                                'PctVaccinatedPopulation',
                                 'LHDReportedInventory','CommunityReportedInventory',
                                 'TotalReportedInventory','InventoryReportDate'],axis=1)
-        cty = vachist[['County','Latitude','Longitude']]
-        vachist = vachist.drop(['County','Latitude','Longitude'],axis=1)
+        cty = vachist[['County','Population','Latitude','Longitude']]
+        vachist = vachist.drop(['County','Population','Latitude','Longitude'],axis=1)
         return cty,vachist
     @staticmethod 
     def flattenDemoReport(report):
@@ -377,10 +378,22 @@ class IDPHDataCollector:
                         'New Shots','Total Vaccinated']]
         tosheet.to_csv('IDPH_DAILY_'+county.upper()+'.csv',
                        index_label='date')
+    def getCountyData():
+        vacframe = rq.get(IDPHDataCollector.apibase+\
+                          IDPHDataCollector.currvac).json()                          
+        vachist = pd.DataFrame(vacframe['VaccineAdministration'])
+        vachist = vachist.rename(columns={'CountyName':'County'})
+        return vachist
+        cty = vachist[['County','Population','Latitude','Longitude']]
+        return cty                                          
+    def writeCountyData(counties=['Warren']):
+        datadir = 'IDPH_Totals/'
+        tosheet = IDPHDataCollector.getCountyData()
+        tosheet.to_csv(datadir+'IDPH_County_Info.csv')        
     def writeTotalsAll(counties=['Warren']):
         datadir = 'IDPH_Totals/'
         for county in counties:
-            print("Scraping "+county)
+            print("Scraping "+ county)
             tots = IDPHDataCollector.totals(county)
             tosheet = tots[['Total Positive','Total Tests','Total Deaths',
                             'New Shots','Total Vaccinated']]
