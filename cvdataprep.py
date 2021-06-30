@@ -382,8 +382,7 @@ class IDPHDataCollector:
         vacframe = rq.get(IDPHDataCollector.apibase+\
                           IDPHDataCollector.currvac).json()                          
         vachist = pd.DataFrame(vacframe['VaccineAdministration'])
-        vachist = vachist.rename(columns={'CountyName':'County'})
-        return vachist
+        vachist = vachist.rename(columns={'CountyName':'County'})        
         cty = vachist[['County','Population','Latitude','Longitude']]
         return cty                                          
     def writeCountyData(counties=['Warren']):
