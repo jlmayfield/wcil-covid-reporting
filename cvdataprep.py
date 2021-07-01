@@ -384,7 +384,16 @@ class IDPHDataCollector:
         vachist = pd.DataFrame(vacframe['VaccineAdministration'])
         vachist = vachist.rename(columns={'CountyName':'County'})        
         cty = vachist[['County','Population','Latitude','Longitude']]
-        return cty                                          
+        return cty  
+    def getNonCountyData():
+        vacframe = rq.get(IDPHDataCollector.apibase+\
+                          IDPHDataCollector.currvac).json()                          
+        vachist = pd.DataFrame(vacframe['VaccineAdministration'])
+        vachist = vachist.rename(columns={'CountyName':'County',
+                                          'PersonsFullyVaccinated':'Total Vaccinated'})
+        vachist = vachist[vachist['County'].isin(['Unknown','Out Of State'])]
+        cty = vachist[['County','Total Vaccinated']]
+        return cty
     def writeCountyData(counties=['Warren']):
         datadir = 'IDPH_Totals/'
         tosheet = IDPHDataCollector.getCountyData()
