@@ -97,3 +97,16 @@ vacdata = allofit[['Total Vaccinated','% Vaccinated','7 Day Avg New Vaccinated']
 #%%
 
 vacdata = vacdata.reset_index().drop(['stateFIPS','date'],axis=1).set_index('countyFIPS')
+statewide = vacdata.loc['Illinois']
+vacdata = vacdata[vacdata.index != 'Illinois']
+#%%
+
+vacdata.loc[:,'% Vac Rank'] = vacdata['% Vaccinated'].rank(ascending=False,method='dense')
+
+#%%
+summary = vacdata['% Vaccinated'].describe()
+fig = px.histogram(vacdata,x='% Vaccinated',
+                   nbins=int(np.ceil((summary['max']-summary['min'])/.02))
+                   )
+fig.update_layout(bargap=0.1)
+plot(fig)
