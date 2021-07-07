@@ -48,11 +48,19 @@ populations, _, _ = cvdp.loadusafacts()
 IL = populations[populations['State']=='IL']
 IL = IL[IL.index != 0]
 names = IL['County Name'].apply(lambda n : n[:-7]).reset_index().set_index('County Name')
-names = names.to_dict()
+names = names['countyFIPS'].to_dict()
+names['Illinois'] = 17
+names['Chicago'] = 171
 
+t = pd.Series(names).astype(int)
+t.name = 'countyFIPS'
+
+counties = pd.concat([counties,t],axis=1)
+counties = counties.rename(columns={'Population':'population'})
+c = counties.reset_index().set_index('countyFIPS').rename(columns={'index':'Name'})
 #%%
 # Scrape all IL counties for totals
-#cvdp.IDPHDataCollector.writeTotalsAll(counties.index)
+cvdp.IDPHDataCollector.writeTotalsAll(counties.index)
 # Gets all the county data. Only changes if population counts are 
 #  updated
 #cvdp.IDPHDataCollector.writeCountyData(counties.index)
@@ -74,11 +82,15 @@ def loadAndExpand(cname):
     tots = pd.read_csv('IDPH_Totals/'+totfilename(cname),
                         header=[0],index_col=0,
                         parse_dates=True)
-    pop = counties.loc[cname]['Population']
+    pop = counties.loc[cname]['population']
     tots.loc[:,'countyFIPS'] = fips
     tots.loc[:,'stateFIPS'] = 17
     tots = tots.reset_index().set_index(['date','stateFIPS','countyFIPS'])
-    expanded = cvda.expandIDPHDaily(tots,pop)    
+    expanded = cvda.expandIDPHDaily(tots,pop) 
+    expanded = pd.concat([expanded,
+                           cvda._per100k(expanded['New Vaccinated'], c),
+                           cvda._per100k(expanded['7 Day Avg New Vaccinated'], c)],
+                          axis=1)                           
     return expanded.reset_index()
 
 #%%
@@ -97,8 +109,8 @@ vacdata = allofit[['Total Vaccinated','% Vaccinated','7 Day Avg New Vaccinated']
 #%%
 
 vacdata = vacdata.reset_index().drop(['stateFIPS','date'],axis=1).set_index('countyFIPS')
-statewide = vacdata.loc['Illinois']
-vacdata = vacdata[vacdata.index != 'Illinois']
+statewide = vacdata.loc['17']
+vacdata = vacdata[vacdata.index != '17']
 #%%
 
 vacdata.loc[:,'% Vac Rank'] = vacdata['% Vaccinated'].rank(ascending=False,method='dense')
