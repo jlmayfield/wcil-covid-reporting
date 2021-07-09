@@ -20,6 +20,14 @@ import cvdataprep as cvdp
 import cvdataanalysis as cvda
 import cvdataviz as cvdv
 
+
+# site table margins
+margs = go.layout.Margin(l=0, #left margin
+                         r=0, #right margin
+                         b=35, #bottom margin
+                         t=25  #top margin
+                         )      
+
 #%%
 
 dist = pd.read_csv('sf12010countydistancemiles.csv',
@@ -60,7 +68,7 @@ counties = counties.rename(columns={'Population':'population'})
 c = counties.reset_index().set_index('countyFIPS').rename(columns={'index':'Name'})
 #%%
 # Scrape all IL counties for totals
-cvdp.IDPHDataCollector.writeTotalsAll(counties.index)
+#cvdp.IDPHDataCollector.writeTotalsAll(counties.index)
 # Gets all the county data. Only changes if population counts are 
 #  updated
 #cvdp.IDPHDataCollector.writeCountyData(counties.index)
@@ -70,6 +78,13 @@ cvdp.IDPHDataCollector.writeTotalsAll(counties.index)
 
 
 #%%
+
+def firstCase(df):
+    fstidx = (df > 0).idxmax()
+    if fstidx is tuple:
+        return fstidx[0]
+    else:
+        return fstidx    
 
 def totfilename(county):
     return 'IDPH_DAILY_'+county.upper()+'.csv'
@@ -104,10 +119,8 @@ outTots = cvdp.IDPHDataCollector.getNonCountyData()
 lastday = allofit.index[-1][0]
 lastvac = lastday - pd.Timedelta(1,'D')
 
-vacdata = allofit[['Total Vaccinated','% Vaccinated','7 Day Avg New Vaccinated']].loc[lastvac,:,:]
-
 #%%
-
+vacdata = allofit[['Total Vaccinated','% Vaccinated','7 Day Avg New Vaccinated']].loc[lastvac,:,:]
 vacdata = vacdata.reset_index().drop(['stateFIPS','date'],axis=1).set_index('countyFIPS')
 statewide = vacdata.loc['17']
 vacdata = vacdata[vacdata.index != '17']
@@ -122,3 +135,162 @@ fig = px.histogram(vacdata,x='% Vaccinated',
                    )
 fig.update_layout(bargap=0.1)
 plot(fig)
+
+#%%
+
+# 7 Day Avg New Cases with Total Vaccinated 
+df = allofit.loc[:,17,17187][['7 Day Avg New Positive',
+                              'Total Vaccinated'
+                              ]]
+df = df.loc[firstCase(df['7 Day Avg New Positive']):]
+
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(go.Scatter(x=df.index, y=df['7 Day Avg New Positive'],
+               name="New Cases (7 day avg)"),               
+    secondary_y=False,
+)
+
+fig.add_trace(
+    go.Scatter(x=df.index, y=df['Total Vaccinated'],
+               name="Total Persons Vaccinated"),
+    secondary_y=True,
+)
+
+# Add figure title
+fig.update_layout(
+    title_text="New Cases and Vaccinations",
+    #margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 420
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+
+ly_max = df['7 Day Avg New Positive'].max()
+ry_max = df['Total Vaccinated'].max()
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
+                 range = (0,ly_max+5),
+                 secondary_y=False)
+fig.update_yaxes(title_text="<b>Total Vaccinations</b>", 
+                 range = (0,ry_max+20),
+                 #tickformat = ',.0%',
+                 secondary_y=True)
+fig.update_layout(hovermode='x unified')
+
+#casetrends = plot(fig, include_plotlyjs=False, output_type='div')
+plot(fig)
+
+#%%
+
+
+# 7 Day Avg New Cases with Vaccinated (7 Day avg or Total)
+df = allofit.loc[:,17,17187][['7 Day Avg New Vaccinated',
+                              'Total Vaccinated'
+                              ]]
+df = df.loc[firstCase(df['7 Day Avg New Vaccinated']):]
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(go.Scatter(x=df.index, y=df['7 Day Avg New Vaccinated'],
+               name="New Vaccinations (7 day avg)"),               
+    secondary_y=False,
+)
+
+fig.add_trace(
+    go.Scatter(x=df.index, y=df['Total Vaccinated'],
+               name="Total Persons Vaccinated"),
+    secondary_y=True,
+)
+
+# Add figure title
+fig.update_layout(
+    title_text="New and Total Vaccinations",
+    #margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 420
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+
+ly_max = df['7 Day Avg New Vaccinated'].max()
+ry_max = df['Total Vaccinated'].max()
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Vaccinations (7 day avg)</b>", 
+                 range = (0,ly_max+5),
+                 secondary_y=False)
+fig.update_yaxes(title_text="<b>Total Vaccinations</b>", 
+                 range = (0,ry_max+20),
+                 #tickformat = ',.0%',
+                 secondary_y=True)
+fig.update_layout(hovermode='x unified')
+
+#casetrends = plot(fig, include_plotlyjs=False, output_type='div')
+plot(fig)
+
+
+
+#%%
+
+
+# 7 Day Avg New Cases with Deaths
+df = allofit.loc[:,17,17187][['7 Day Avg New Positive',
+                              'Total Deaths'
+                              ]]
+df = df.loc[firstCase(df['7 Day Avg New Positive']):]
+
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(go.Scatter(x=df.index, y=df['7 Day Avg New Positive'],
+               name="New Cases (7 day avg)"),               
+    secondary_y=False,
+)
+
+fig.add_trace(
+    go.Scatter(x=df.index, y=df['Total Deaths'],
+               name="Total Deaths"),
+    secondary_y=True,
+)
+
+# Add figure title
+fig.update_layout(
+    title_text="New Cases and Deaths",
+    #margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 420
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+
+ly_max = df['7 Day Avg New Positive'].max()
+ry_max = df['Total Deaths'].max()
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
+                 range = (0,ly_max+5),
+                 secondary_y=False)
+fig.update_yaxes(title_text="<b>Deaths</b>", 
+                 range = (0,ry_max+20),
+                 #tickformat = ',.0%',
+                 secondary_y=True)
+fig.update_layout(hovermode='x unified')
+
+#casetrends = plot(fig, include_plotlyjs=False, output_type='div')
+plot(fig)
+
+#%%
+
