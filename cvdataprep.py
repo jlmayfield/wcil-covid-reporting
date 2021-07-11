@@ -212,6 +212,7 @@ class IDPHDataCollector:
     demo = 'api/COVID/GetCountyDemographicsOverTime?countyName='
     demo2 = 'api/COVID/GetCountyDemographics?countyName='
     vac = 'api/COVIDVaccine/getVaccineAdministration?CountyName='
+    currvac = 'api/COVIDVaccine/getVaccineAdministrationCurrent?CountyName='
     @staticmethod
     def getCountyTotals(county='Warren'):
         colmap = {'reportDate':'date',
@@ -335,11 +336,11 @@ class IDPHDataCollector:
         vachist['date'] = pd.to_datetime(vachist['date'])
         vachist = vachist.set_index('date')
         vachist = vachist.drop(['AdministeredCountRollAvg','AllocatedDoses',
-                                'Population','PctVaccinatedPopulation',
+                                'PctVaccinatedPopulation',
                                 'LHDReportedInventory','CommunityReportedInventory',
                                 'TotalReportedInventory','InventoryReportDate'],axis=1)
-        cty = vachist[['County','Latitude','Longitude']]
-        vachist = vachist.drop(['County','Latitude','Longitude'],axis=1)
+        cty = vachist[['County','Population','Latitude','Longitude']]
+        vachist = vachist.drop(['County','Population','Latitude','Longitude'],axis=1)
         return cty,vachist
     @staticmethod 
     def flattenDemoReport(report):
@@ -357,6 +358,10 @@ class IDPHDataCollector:
         if not idx.difference(tots.index).empty:
             tots = tots.reindex(index=pd.date_range(firstday,tots.index[-1])).fillna(0)
         if not idx.difference(vacs.index).empty:
+            #DuPage has duplicate entries that seem to just be one
+            # lacking shot totals. So.. fix.?
+            if vacs.index.duplicated().any():
+                vacs = vacs.groupby(vacs.index).max()
             vacs = vacs.reindex(index=pd.date_range(firstday,vacs.index[-1])).fillna(0)        
         alltots = pd.concat([tots,vacs],axis=1)
         # empty rows are all zeros -- 3/23/20 is sus
@@ -373,6 +378,35 @@ class IDPHDataCollector:
                         'New Shots','Total Vaccinated']]
         tosheet.to_csv('IDPH_DAILY_'+county.upper()+'.csv',
                        index_label='date')
+    def getCountyData():
+        vacframe = rq.get(IDPHDataCollector.apibase+\
+                          IDPHDataCollector.currvac).json()                          
+        vachist = pd.DataFrame(vacframe['VaccineAdministration'])
+        vachist = vachist.rename(columns={'CountyName':'County'})        
+        cty = vachist[['County','Population','Latitude','Longitude']]
+        return cty  
+    def getNonCountyData():
+        vacframe = rq.get(IDPHDataCollector.apibase+\
+                          IDPHDataCollector.currvac).json()                          
+        vachist = pd.DataFrame(vacframe['VaccineAdministration'])
+        vachist = vachist.rename(columns={'CountyName':'County',
+                                          'PersonsFullyVaccinated':'Total Vaccinated'})
+        vachist = vachist[vachist['County'].isin(['Unknown','Out Of State'])]
+        cty = vachist[['County','Total Vaccinated']]
+        return cty
+    def writeCountyData(counties=['Warren']):
+        datadir = 'IDPH_Totals/'
+        tosheet = IDPHDataCollector.getCountyData()
+        tosheet.to_csv(datadir+'IDPH_County_Info.csv')        
+    def writeTotalsAll(counties=['Warren']):
+        datadir = 'IDPH_Totals/'
+        for county in counties:
+            print("Scraping "+ county)
+            tots = IDPHDataCollector.totals(county)
+            tosheet = tots[['Total Positive','Total Tests','Total Deaths',
+                            'New Shots','Total Vaccinated']]
+            tosheet.to_csv(datadir+'IDPH_DAILY_'+county.upper()+'.csv',
+                           index_label='date')            
     def writeDemos(firstday,lastday,county='Warren'):
         county_data,age_data,race_data,gender_data = IDPHDataCollector.getDemoHistory(firstday, lastday, county)
         age_data.to_csv('IDPH_AGEDEMO_'+county.upper()+'.csv')
