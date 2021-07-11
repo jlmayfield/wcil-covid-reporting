@@ -9,6 +9,7 @@ Created on Mon Jun 28 10:15:33 2021
 
 import pandas as pd
 import numpy as np
+import math
 
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -59,6 +60,7 @@ names = IL['County Name'].apply(lambda n : n[:-7]).reset_index().set_index('Coun
 names = names['countyFIPS'].to_dict()
 names['Illinois'] = 17
 names['Chicago'] = 171
+r_names = {v:k for k,v in names.items()}
 
 t = pd.Series(names).astype(int)
 t.name = 'countyFIPS'
@@ -66,16 +68,6 @@ t.name = 'countyFIPS'
 counties = pd.concat([counties,t],axis=1)
 counties = counties.rename(columns={'Population':'population'})
 c = counties.reset_index().set_index('countyFIPS').rename(columns={'index':'Name'})
-#%%
-# Scrape all IL counties for totals
-#cvdp.IDPHDataCollector.writeTotalsAll(counties.index)
-# Gets all the county data. Only changes if population counts are 
-#  updated
-#cvdp.IDPHDataCollector.writeCountyData(counties.index)
-
-#cvdp.IDPHDataCollector.writeTotalsAll(nopop.index)-
-#cvdp.IDPHDataCollector.writeCountyData(nopop.index)
-
 
 #%%
 
@@ -103,8 +95,10 @@ def loadAndExpand(cname):
     tots = tots.reset_index().set_index(['date','stateFIPS','countyFIPS'])
     expanded = cvda.expandIDPHDaily(tots,pop) 
     expanded = pd.concat([expanded,
-                           cvda._per100k(expanded['New Vaccinated'], c),
-                           cvda._per100k(expanded['7 Day Avg New Vaccinated'], c)],
+                          cvda._per100k(expanded['7 Day Avg New Positive'], c),
+                          cvda._per100k(expanded['New Vaccinated'], c),
+                          cvda._per100k(expanded['7 Day Avg New Vaccinated'], c),
+                          ],
                           axis=1)                           
     return expanded.reset_index()
 
@@ -122,8 +116,8 @@ lastvac = lastday - pd.Timedelta(1,'D')
 #%%
 vacdata = allofit[['Total Vaccinated','% Vaccinated','7 Day Avg New Vaccinated']].loc[lastvac,:,:]
 vacdata = vacdata.reset_index().drop(['stateFIPS','date'],axis=1).set_index('countyFIPS')
-statewide = vacdata.loc['17']
-vacdata = vacdata[vacdata.index != '17']
+statewide = vacdata.loc[17]
+vacdata = vacdata[vacdata.index != 17]
 #%%
 
 vacdata.loc[:,'% Vac Rank'] = vacdata['% Vaccinated'].rank(ascending=False,method='dense')
@@ -138,159 +132,118 @@ plot(fig)
 
 #%%
 
-# 7 Day Avg New Cases with Total Vaccinated 
-df = allofit.loc[:,17,17187][['7 Day Avg New Positive',
-                              'Total Vaccinated'
-                              ]]
-df = df.loc[firstCase(df['7 Day Avg New Positive']):]
-
-
-fig = make_subplots(specs=[[{"secondary_y": True}]])
-fig.add_trace(go.Scatter(x=df.index, y=df['7 Day Avg New Positive'],
-               name="New Cases (7 day avg)"),               
-    secondary_y=False,
-)
-
-fig.add_trace(
-    go.Scatter(x=df.index, y=df['Total Vaccinated'],
-               name="Total Persons Vaccinated"),
-    secondary_y=True,
-)
-
-# Add figure title
-fig.update_layout(
-    title_text="New Cases and Vaccinations",
-    #margin = margs,
-    legend=dict(
-        yanchor="top",
-        y=0.99,
-        xanchor="left",
-        x=0.01),
-    height = 420
-)
-
-# Set x-axis title
-fig.update_xaxes(title_text="Date")
-
-ly_max = df['7 Day Avg New Positive'].max()
-ry_max = df['Total Vaccinated'].max()
-# Set y-axes titles
-fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
-                 range = (0,ly_max+5),
-                 secondary_y=False)
-fig.update_yaxes(title_text="<b>Total Vaccinations</b>", 
-                 range = (0,ry_max+20),
-                 #tickformat = ',.0%',
-                 secondary_y=True)
-fig.update_layout(hovermode='x unified')
-
-#casetrends = plot(fig, include_plotlyjs=False, output_type='div')
-plot(fig)
-
-#%%
-
-
-# 7 Day Avg New Cases with Vaccinated (7 Day avg or Total)
-df = allofit.loc[:,17,17187][['7 Day Avg New Vaccinated',
-                              'Total Vaccinated'
-                              ]]
-df = df.loc[firstCase(df['7 Day Avg New Vaccinated']):]
-
-fig = make_subplots(specs=[[{"secondary_y": True}]])
-fig.add_trace(go.Scatter(x=df.index, y=df['7 Day Avg New Vaccinated'],
-               name="New Vaccinations (7 day avg)"),               
-    secondary_y=False,
-)
-
-fig.add_trace(
-    go.Scatter(x=df.index, y=df['Total Vaccinated'],
-               name="Total Persons Vaccinated"),
-    secondary_y=True,
-)
-
-# Add figure title
-fig.update_layout(
-    title_text="New and Total Vaccinations",
-    #margin = margs,
-    legend=dict(
-        yanchor="top",
-        y=0.99,
-        xanchor="left",
-        x=0.01),
-    height = 420
-)
-
-# Set x-axis title
-fig.update_xaxes(title_text="Date")
-
-ly_max = df['7 Day Avg New Vaccinated'].max()
-ry_max = df['Total Vaccinated'].max()
-# Set y-axes titles
-fig.update_yaxes(title_text="<b>New Vaccinations (7 day avg)</b>", 
-                 range = (0,ly_max+5),
-                 secondary_y=False)
-fig.update_yaxes(title_text="<b>Total Vaccinations</b>", 
-                 range = (0,ry_max+20),
-                 #tickformat = ',.0%',
-                 secondary_y=True)
-fig.update_layout(hovermode='x unified')
-
-#casetrends = plot(fig, include_plotlyjs=False, output_type='div')
-plot(fig)
+def addNormedCaseVacPlot(fig,row,col,df):
+    fig.add_trace(go.Scatter(x=df.index, y=df['7 Day Avg New Positive per 100k'],
+                             name="New Cases per 100k(7 day avg)",
+                             showlegend=False,
+                             marker_color=px.colors.qualitative.Plotly[1]),               
+                  row=row,col=col,secondary_y=False,
+                  )
+    fig.add_trace(go.Scatter(x=df.index, y=df['% Vaccinated'],
+                             name="Percent Population Vaccinated",
+                             showlegend=False,
+                             marker_color=px.colors.qualitative.Plotly[0]),
+                  row=row,col=col,secondary_y=True,
+                  )
+    
 
 
 
 #%%
+# get 50 mile radius
+aoi_fips = countiesWithin(17187, 50).append(pd.Index([17187]))
+aoi_fips = aoi_fips[ aoi_fips >= 17000][ aoi_fips < 18000 ]
+aoi_df = allofit.loc[:,17,aoi_fips]
+# get current vac % and cases. Sort vac % in decreasing order
+currvac = (aoi_df.loc[lastvac,17,:]['% Vaccinated']).sort_values(ascending=False)
+currcase = aoi_df.loc[lastday,17,:]['7 Day Avg New Positive per 100k']     
+# get names (aoi) and name:fips dict for % vac order
+aoi = [r_names[f] for f in currvac.index]
+aoi_names = { c:names[c] for c in aoi}
+
+# all time max on cases and % vac for y ranges
+y1max = aoi_df['7 Day Avg New Positive per 100k'].max()
+y2max = aoi_df['% Vaccinated'].max()
 
 
-# 7 Day Avg New Cases with Deaths
-df = allofit.loc[:,17,17187][['7 Day Avg New Positive',
-                              'Total Deaths'
-                              ]]
-df = df.loc[firstCase(df['7 Day Avg New Positive']):]
+ncols = 2
+nrows = int(math.ceil(len(aoi)/ncols))
+specs = [[{"secondary_y": True},{"secondary_y": True}]]*nrows
+if nrows * ncols > len(aoi):
+    specs = [[{"secondary_y": True},{"secondary_y": True}]]*(nrows-1) +\
+        [[{'secondary_y':True},{}]]
+        
+title_info = zip(aoi,currvac,currcase.loc[currvac.index])
+titles = [f'<b>{n} County</b> ({v:,.1%}, {c:.1f})' for n,v,c in title_info]        
+        
+#%%
+fig = make_subplots(rows=nrows,cols=ncols,
+                    #shared_yaxes=True,
+                    #shared_xaxes=True,
+                    specs=specs,
+                    subplot_titles=titles)
+
+for i in range(len(aoi)):
+    county = aoi_names[aoi[i]]
+    addNormedCaseVacPlot(fig,i//ncols + 1,i%ncols + 1,
+                         aoi_df.loc[:,17,county])
 
 
-fig = make_subplots(specs=[[{"secondary_y": True}]])
-fig.add_trace(go.Scatter(x=df.index, y=df['7 Day Avg New Positive'],
-               name="New Cases (7 day avg)"),               
-    secondary_y=False,
-)
-
-fig.add_trace(
-    go.Scatter(x=df.index, y=df['Total Deaths'],
-               name="Total Deaths"),
-    secondary_y=True,
-)
+# site margins
+margs = go.layout.Margin(l=0, #left margin
+                         r=0, #right margin
+                         b=35, #bottom margin
+                         t=175  #top margin
+                         )                          
 
 # Add figure title
 fig.update_layout(
-    title_text="New Cases and Deaths",
-    #margin = margs,
-    legend=dict(
-        yanchor="top",
-        y=0.99,
-        xanchor="left",
-        x=0.01),
-    height = 420
+    title_text="<b>New Cases per 100k (7 Day Avg) and Percent Vaccinated</b><br>" +\
+        "<i>Warren County Region</i><br>"+\
+            "Updated on " + str(lastday.date())
+        ,    
+    margin = margs,
+    width= 1200,
+    height= 800  
 )
-
-# Set x-axis title
-fig.update_xaxes(title_text="Date")
-
-ly_max = df['7 Day Avg New Positive'].max()
-ry_max = df['Total Deaths'].max()
-# Set y-axes titles
-fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
-                 range = (0,ly_max+5),
+fig.update_yaxes(#title_text="<b>New Cases per 100k(7 day avg)</b>", 
+                 range = (0,y1max+5),
                  secondary_y=False)
-fig.update_yaxes(title_text="<b>Deaths</b>", 
-                 range = (0,ry_max+20),
-                 #tickformat = ',.0%',
+fig.update_yaxes(#title_text="<b>% Vaccinated</b>", 
+                 range = (0,y2max+.025),
+                 tickformat = ',.0%',
                  secondary_y=True)
-fig.update_layout(hovermode='x unified')
 
-#casetrends = plot(fig, include_plotlyjs=False, output_type='div')
-plot(fig)
+plot(fig,filename='graphics/vacCaseRegional.html')
+vaccasereport = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
 
+pgraph = '<p></p>'
+mdpage = ""
+header = """---
+layout: page
+title: Warren County Regional Report
+permalink: /wcil-regional-report/
+---
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+"""
+timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
+header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+howto = """
+<p>The graphic below reports on two metrics: the seven day average of new cases per 
+100,000 people and the percent of the population that is full vaccinated. 
+Data comes from the Illinois Department of Public Health and is updated Monday 
+through friday. The graphs are sorted by the percent of the population that 
+is vaccinated and each title lists the current percentage as well as the 
+current seven day average of new cases per 100,000 people. The graphs themselves 
+show the case average in red and the percent vaccinated in blue and cover the
+entire history of the pandemic.</p> 
+"""
+
+
+mdpage = header + howto + pgraph + vaccasereport
+
+with open('docs/wcilRegion.md','w') as f:
+    f.write(mdpage)
+    f.close()
