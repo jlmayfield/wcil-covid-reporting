@@ -50,7 +50,7 @@ def loadwchd(datadir='./'):
     death_wchd.columns.names = ['Sex','Age']    
     return (reports_wchd,demo_wchd,death_wchd)
 
-def loadidphdaily(datadir='./'):  
+def loadidphdaily(datadir='./IDPH_Totals/'):  
     """
     Read in raw data from IDPH about WC and prepare as DataFrames
 
