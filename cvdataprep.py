@@ -11,6 +11,7 @@ import math
 import pandas as pd
 import numpy as np
 import requests as rq
+import time
 
 
 
@@ -402,7 +403,13 @@ class IDPHDataCollector:
         datadir = 'IDPH_Totals/'
         for county in counties:
             print("Scraping "+ county)
-            tots = IDPHDataCollector.totals(county)
+            while True:
+                try:
+                    tots = IDPHDataCollector.totals(county)
+                    break
+                except:
+                    print('Error Scraping ' + county +'. Retrying...')
+                    time.sleep(3)
             tosheet = tots[['Total Positive','Total Tests','Total Deaths',
                             'New Shots','Total Vaccinated']]
             tosheet.to_csv(datadir+'IDPH_DAILY_'+county.upper()+'.csv',
