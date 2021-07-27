@@ -174,13 +174,64 @@ fig.update_layout(hovermode='x unified')
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
 
 #%%
-forgraph = threeweeks.loc[:,'% Vaccinated'].apply(lambda x : x * 100).dropna()
-fig = px.area(forgraph,x=forgraph.index,y=forgraph,
-                 title='Percentage of the Population Vaccinated',
-                 labels={'y':'Percent Vaccinated',
-                         'date':'Date'})
-fig.update_layout(margin=margs,
-                  yaxis=dict(range=(0,80)))
+firstvax = (wcil['New Vaccinated'] > 0).idxmax()
+lastvax = wcil.index[-2]
+
+forgraph = threeweeks[['% Vaccinated','7 Day Avg New Vaccinated','New Vaccinated']].loc[:lastvax]
+clrs = px.colors.qualitative.G10
+clrs2 = px.colors.qualitative.D3
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(
+    go.Scatter(x=forgraph.index,
+               y=forgraph['% Vaccinated'],
+               fill='tozeroy',
+               fillcolor = 'rgba(9,75,81,0.2)',
+               marker_color=clrs2[9],
+               name="% Population Vaccinated"),
+    secondary_y=True
+)
+fig.add_trace(go.Bar(x=forgraph.index,
+                     y=forgraph['New Vaccinated'],
+                     marker_color=clrs[5],
+                     name="New Full Vaccinations"),               
+    secondary_y=False,
+)
+fig.add_trace(go.Scatter(x=forgraph.index,
+                     y=forgraph['7 Day Avg New Vaccinated'],
+                     marker_color=clrs[9],
+                     name="New Full Vaccinations (7 Day Avg)"),               
+    secondary_y=False,
+)
+
+# Add figure title
+fig.update_layout(
+    title_text='New Full Vaccinations and Percent of Population Vaccinated',
+    margin = margs,
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01),
+    height = 420
+)
+
+# Set x-axis title
+fig.update_xaxes(title_text="Date")
+
+ly_max = forgraph['New Vaccinated'].max()
+ry_max = forgraph['% Vaccinated'].max()
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>New Full Vaccinations</b>", 
+                 range = (0,ly_max+5),
+                 secondary_y=False)
+fig.update_yaxes(title_text="<b>% Vaccinated</b>", 
+                 range = (0,.8),
+                 tickformat = ',.0%',
+                 secondary_y=True)
+fig.update_layout(hovermode='x unified')
+
+
 pvac = plot(fig,include_plotlyjs=False,output_type='div')
 #plot(fig,filename='graphics/pcentvaccinated.html')
 

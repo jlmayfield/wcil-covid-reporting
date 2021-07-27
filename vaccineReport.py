@@ -112,6 +112,7 @@ outTots = cvdp.IDPHDataCollector.getNonCountyData()
 
 lastday = allofit.index[-1][0]
 lastvac = lastday - pd.Timedelta(1,'D')
+firstvac = (allofit['New Vaccinated'] > 0).idxmax()[0]
 
 #%%
 vacdata = allofit[['Total Vaccinated','% Vaccinated','7 Day Avg New Vaccinated']].loc[lastvac,:,:]
@@ -128,7 +129,7 @@ fig = px.histogram(vacdata,x='% Vaccinated',
                    nbins=int(np.ceil((summary['max']-summary['min'])/.02))
                    )
 fig.update_layout(bargap=0.1)
-plot(fig)
+#plot(fig)
 
 #%%
 
@@ -146,6 +147,32 @@ def addNormedCaseVacPlot(fig,row,col,df):
                   row=row,col=col,secondary_y=True,
                   )
     
+def addFullVacPlot(fig,row,col,df):
+    fig.add_trace(
+    go.Scatter(x=df.index,
+               y=df['% Vaccinated'],
+               fill='tozeroy',
+               fillcolor = 'rgba(9,75,81,0.2)',
+               marker_color=px.colors.qualitative.D3[9],
+               name="% Population Vaccinated",
+               showlegend=False),
+    secondary_y=True,row=row,col=col
+    )
+    fig.add_trace(go.Bar(x=df.index,
+                         y=df['New Vaccinated per 100k'],
+                         marker_color=px.colors.qualitative.G10[0],
+                         name="New Full Vaccinations",
+                         showlegend=False),               
+        secondary_y=False,row=row,col=col
+    )
+    fig.add_trace(go.Scatter(x=df.index,
+                     y=df['7 Day Avg New Vaccinated per 100k'],
+                     marker_color=px.colors.qualitative.G10[9],
+                     name="New Full Vaccinations (7 Day Avg)",
+                     showlegend=False),               
+    secondary_y=False,row=row,col=col
+    )
+
 
 
 
@@ -156,13 +183,16 @@ aoi_fips = aoi_fips[ aoi_fips >= 17000][ aoi_fips < 18000 ]
 aoi_df = allofit.loc[:,17,aoi_fips]
 # get current vac % and cases. Sort vac % in decreasing order
 currvac = (aoi_df.loc[lastvac,17,:]['% Vaccinated']).sort_values(ascending=False)
-currcase = aoi_df.loc[lastday,17,:]['7 Day Avg New Positive per 100k']     
+currcase = aoi_df.loc[lastday,17,:]['7 Day Avg New Positive per 100k']
+currvac2 = aoi_df.loc[lastday,17,:]['7 Day Avg New Vaccinated per 100k']
+     
 # get names (aoi) and name:fips dict for % vac order
 aoi = [r_names[f] for f in currvac.index]
 aoi_names = { c:names[c] for c in aoi}
 
 # all time max on cases and % vac for y ranges
 y1max = aoi_df['7 Day Avg New Positive per 100k'].max()
+y1bmax = aoi_df['New Vaccinated'].max()
 y2max = aoi_df['% Vaccinated'].max()
 
 
@@ -174,7 +204,11 @@ if nrows * ncols > len(aoi):
         [[{'secondary_y':True},{}]]
         
 title_info = zip(aoi,currvac,currcase.loc[currvac.index])
-titles = [f'<b>{n} County</b> ({v:,.1%}, {c:.1f})' for n,v,c in title_info]        
+titles = [f'<b>{n} County</b> ({v:,.1%} , {c:.1f} cases per 100k)' for n,v,c in title_info]    
+
+
+title_info2 = zip(aoi,currvac,currvac2.loc[currvac.index])
+titles2 = [f'<b>{n} County</b> ({v:,.1%}, {c:.1f} vaccinations)' for n,v,c in title_info2]      
         
 #%%
 fig = make_subplots(rows=nrows,cols=ncols,
@@ -214,8 +248,51 @@ fig.update_yaxes(#title_text="<b>% Vaccinated</b>",
                  tickformat = ',.0%',
                  secondary_y=True)
 
-plot(fig,filename='graphics/vacCaseRegional.html')
+#plot(fig,filename='graphics/vacCaseRegional.html')
 vaccasereport = plot(fig, include_plotlyjs=False, output_type='div')
+
+#%%
+
+fig = make_subplots(rows=nrows,cols=ncols,
+                    #shared_yaxes=True,
+                    #shared_xaxes=True,
+                    specs=specs,
+                    subplot_titles=titles2)
+
+for i in range(len(aoi)):
+    county = aoi_names[aoi[i]]
+    addFullVacPlot(fig,i//ncols + 1,i%ncols + 1,
+                   aoi_df.loc[:,17,county].loc[firstvac:])
+
+
+# site margins
+margs = go.layout.Margin(l=0, #left margin
+                         r=0, #right margin
+                         b=35, #bottom margin
+                         t=175  #top margin
+                         )                          
+
+# Add figure title
+fig.update_layout(
+    title_text="<b>New Vaccinations per 100k (with 7 Day Avg) and Percent Vaccinated</b><br>" +\
+        "<i>Warren County Region</i><br>"+\
+            "Updated on " + str(lastday.date())
+        ,    
+    margin = margs,
+    width= 1200,
+    height= 800  
+)
+fig.update_yaxes(#title_text="<b>New Cases per 100k(7 day avg)</b>", 
+                 range = (0,y1bmax+5),
+                 secondary_y=False)
+fig.update_yaxes(#title_text="<b>% Vaccinated</b>", 
+                 range = (0,y2max+.025),
+                 tickformat = ',.0%',
+                 secondary_y=True)
+
+#plot(fig,filename='graphics/vacOnlyRegional.html')
+vaconlyreport = plot(fig, include_plotlyjs=False, output_type='div')
+
 
 #%%
 
@@ -231,7 +308,7 @@ permalink: /wcil-regional-report/
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 howto = """
-<p>The graphic below reports on two metrics: the seven day average of new cases per 
+<p>The first graphic below reports on two metrics: the seven day average of new cases per 
 100,000 people and the percent of the population that is full vaccinated. 
 Data comes from the Illinois Department of Public Health and is updated Monday 
 through friday. The graphs are sorted by the percent of the population that 
@@ -239,10 +316,18 @@ is vaccinated and each title lists the current percentage as well as the
 current seven day average of new cases per 100,000 people. The graphs themselves 
 show the case average in red and the percent vaccinated in blue and cover the
 entire history of the pandemic.</p> 
+<p>
+The second graphic reports on vaccine data only and scales vaccination counts per 100,000
+people. The titles list percent of the population vaccinated and the current seven
+day average of new fully vaccinated individuals for each count. Bars are the daily 
+new fully vaccinationated people (per 100k) and the dark blue line is the seven day average of
+that statistic. In general, you can look at the dark line and bars to compare vacciantation 
+rates in each county. 
+</p>
 """
 
 
-mdpage = header + howto + pgraph + vaccasereport
+mdpage = header + howto + pgraph + vaccasereport + pgraph + vaconlyreport
 
 with open('docs/wcilRegion.md','w') as f:
     f.write(mdpage)
