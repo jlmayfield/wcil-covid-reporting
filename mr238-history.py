@@ -248,7 +248,7 @@ div = plot(fig, include_plotlyjs=False, output_type='div')
 mdpage = ""
 header = """---
 layout: page
-title: MR238 - Historical Report
+title: MR238 - Historical
 permalink: /mr238/history/
 ---
 
@@ -260,7 +260,7 @@ timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
 header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 mdpage = header + '\n\n\n' + div
 
-if today.dayofweek == 6:
+if today.dayofweek == 0:
     with open('docs/MR238History.md','w') as f:
         f.write(mdpage)
         f.close()
