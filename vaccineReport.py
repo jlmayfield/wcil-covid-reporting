@@ -300,7 +300,7 @@ pgraph = '<p></p>'
 mdpage = ""
 header = """---
 layout: page
-title: Warren County Regional Report
+title: Warren County - Regional
 permalink: /wcil-regional-report/
 ---
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>

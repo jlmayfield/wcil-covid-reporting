@@ -450,7 +450,7 @@ pgraph = '<p></p>'
 mdpage = ""
 header = """---
 layout: page
-title: Warren County Daily COVID-19 Report
+title: Warren County - Daily
 permalink: /wcil-daily-report/
 ---
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
