@@ -110,7 +110,7 @@ full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
 tests_wchd = full_tests_wchd.loc[:,17,17187]
 
 by_day = daily(tests_wchd,demo_wchd)
-by_week = weekly(by_day).iloc[3:]
+by_week = weekly(by_day)
 by_month = monthly(by_day)
 
 idphnums = cvdp.loadidphdaily()
