@@ -51,7 +51,7 @@ def loadwchd(datadir='./'):
     death_wchd.columns.names = ['Sex','Age']    
     return (reports_wchd,demo_wchd,death_wchd)
 
-def loadidphdaily(datadir='./IDPH_Totals/'):  
+def loadidphdaily(county='Warren',datadir='./IDPH_Totals/'):  
     """
     Read in raw data from IDPH about WC and prepare as DataFrames
 
@@ -66,20 +66,20 @@ def loadidphdaily(datadir='./IDPH_Totals/'):
       
 
     """
-    tots = pd.read_csv(datadir+'IDPH_DAILY_WARREN.csv',
+    tots = pd.read_csv(datadir+'IDPH_DAILY_'+county.upper()+'.csv',
                          header=[0],index_col=0,
                          parse_dates=True)#.fillna(0)
     #tots.loc[:,'New Shots'] = tots['New Shots'].astype(int)    
     return tots
 
-def loadidphdemos(datadir='./'):
-    age = pd.read_csv(datadir+'IDPH_AGEDEMO_WARREN.csv',
+def loadidphdemos(county='Warren', datadir='./'):
+    age = pd.read_csv(datadir+'IDPH_AGEDEMO_'+county.upper()+'.csv',
                       index_col=[0,1],
                       parse_dates=True)
-    race = pd.read_csv(datadir+'IDPH_RACEDEMO_WARREN.csv',
+    race = pd.read_csv(datadir+'IDPH_RACEDEMO_'+county.upper()+'.csv',
                       index_col=[0,1],
                       parse_dates=True)
-    gender = pd.read_csv(datadir+'IDPH_GENDERDEMO_WARREN.csv',
+    gender = pd.read_csv(datadir+'IDPH_GENDERDEMO_'+county.upper()+'.csv',
                       index_col=[0,1],
                       parse_dates=True)
     return age,race,gender
@@ -248,9 +248,15 @@ class IDPHDataCollector:
         return e
     @staticmethod
     def getDailyDemo(day,county='Warren'):
-        demo = rq.get(IDPHDataCollector.apibase+\
-                      IDPHDataCollector.demo2+county+\
-                      '&reportDate='+day)        
+        while True:
+            try:
+                demo = rq.get(IDPHDataCollector.apibase+\
+                              IDPHDataCollector.demo2+county+\
+                                  '&reportDate='+day)        
+                break
+            except:
+                print('Error Scraping ' + str(day) +'. Retrying...')
+                time.sleep(3)            
         if demo.ok:
             demo = demo.json()
         else:
@@ -308,7 +314,7 @@ class IDPHDataCollector:
         tot = len(dates)
         done = 0
         def log_progress(d):
-            res = IDPHDataCollector.getDailyDemo(str(d.date()))
+            res = IDPHDataCollector.getDailyDemo(str(d.date()),county)
             nonlocal done
             nonlocal tot
             done = done + 1
