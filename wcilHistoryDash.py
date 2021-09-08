@@ -139,6 +139,24 @@ by_week = pd.concat([by_week,totpos,totdet],axis=1)
 #%%
 
 def cleanTicks(init, sig, d):
+    """
+    Produce a clean, no two are so close that they'd overlap, set of tick values
+
+    Parameters
+    ----------
+    init : sequence of values
+        Basic set of tick values (think range(n,m,s))
+    sig : sequence of values
+        Significant values to be added to init
+    d : Int or Float
+        Min difference between tick values
+
+    Returns
+    -------
+    List[Numbers]
+        Cleaned up, sorted intersection of init and sig
+
+    """
     a = [{y for y in init if abs(y-s) > d} for s in sig]
     ticks = a[0]
     for s in a[1:]:
@@ -147,6 +165,27 @@ def cleanTicks(init, sig, d):
     return list(ticks)
 
 def ticktext(ticks,sig,f,g=lambda t:str(t)):
+    """
+    Convert tick values to text, making sig values bold.
+
+    Parameters
+    ----------
+    ticks : Sequence of values
+        The tick values (ideally cleaned)
+    sig : sequence of values
+        significat value (to be bolded)
+    f : function
+        text formatting function to apply to members of sig
+    g : TYPE, optional
+        text formatting function to apply to members of (ticks - sig). default 
+        is lambda t:str(t).
+
+    Returns
+    -------
+    List of strings
+        The formatted tick values
+
+    """
     def stringify(t):
         if t in sig:
             return f(t)
@@ -390,13 +429,14 @@ death_weeks = death_weeks[deathcats].astype(int)
 #%%
 
 # multiples: cumulative Cases 
+#  ticks: col1--> by 100 with current. col 2,3 --> current
 
 cumsum_order = demo_total.iloc[-1].sort_values(ascending=False).index
 curtot = demo_total.iloc[-1].sum()
 catmax = demo_total.max().max()
 
 fig = make_subplots(rows=6,cols=3,
-                    shared_yaxes=True,
+                    #shared_yaxes=True,
                     shared_xaxes=True,
                     specs = [[{},{},{}],
                              [{},{},{}],
@@ -409,15 +449,35 @@ fig = make_subplots(rows=6,cols=3,
 for i in range(len(cumsum_order)):
     cat = cumsum_order[i]
     clr = cmap[cat]
+    r = int(i/3)+1
+    c = int(i%3)+1
     fig.add_trace(go.Scatter(x=demo_total.index,
                              y=demo_total[cat],
                              name=cat,
                                  showlegend=False,
                                  fill='tozeroy',
                                  mode='lines',
-                             marker_color=clr
+                             marker_color=clr                             
                              ),
-                  row = int(i/3)+1,col=int(i%3)+1)
+                  row = r,col=c)
+    if c == 1:
+        tsigs = [int(demo_total[cat].max())]
+        tvals = cleanTicks(list(range(0,int(catmax)+10,100)),
+                           tsigs,
+                           50)
+        ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))
+    else:
+        tsigs = [int(demo_total[cat].max())]
+        tvals = cleanTicks([],tsigs,50)
+        ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))        
+    fig.update_yaxes(tickmode='array',
+                     tickvals=tvals,
+                     ticktext=ttext,
+                     showgrid = False,
+                     row=r,col=c)  
+    fig.update_xaxes(showgrid=False,row=r,col=c)
 cats = demo_total.columns
 for i in range(0,len(cats)):
     fig.add_trace(go.Scatter(x=demo_total.index,
@@ -428,14 +488,27 @@ for i in range(0,len(cats)):
                          fill='tonexty',
                          stackgroup='one'                         
                          ),
-                  row=5,col=1)    
+                  row=5,col=1)
+    tsigs = [int(demo_daily.sum().sum())]
+    tvals = cleanTicks(range(0,int(demo_daily.sum().sum()) + 25,500),
+                       tsigs,
+                       250)
+    ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))   
+    fig.update_yaxes(showgrid=False,
+                     tickmode='array',
+                     tickvals=tvals,
+                     ticktext=ttext,
+                     row=5,col=1)    
+    fig.update_xaxes(showgrid=False,row=5,col=1)
 
 fig.update_yaxes(range=(0,catmax+10))
 fig.update_yaxes(range=(0,demo_daily.sum().sum() + 25),row=5)
 fig.update_layout(title="Total COVID-19 Cases by Demographic Groups",
                   width= 1200,
                   height= 800,
-                  margin=margs)
+                  margin=margs,
+                  plot_bgcolor='floralwhite')
 #plot(fig,filename='graphics/demototals_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-DemoTotals.txt','w') as f:
@@ -448,9 +521,10 @@ with open('graphics/WCIL-DemoTotals.txt','w') as f:
 complete_weeks = demo_weeks
 currweek_order = complete_weeks.iloc[-1].sort_values(ascending=False).index
 catmax = complete_weeks.max().max()
+tot=complete_weeks.sum(axis=1).max()
 
 fig = make_subplots(rows=6,cols=3,
-                    shared_yaxes=True,
+                    #shared_yaxes=True,
                     shared_xaxes=True,
                     specs = [[{},{},{}],
                              [{},{},{}],
@@ -462,6 +536,8 @@ fig = make_subplots(rows=6,cols=3,
 for i in range(len(currweek_order)):
     cat = currweek_order[i]
     clr = cmap[cat]
+    r = int(i/3)+1
+    c = int(i%3)+1
     fig.add_trace(go.Scatter(x=complete_weeks.index,
                              y=complete_weeks[cat],
                              name=cat,
@@ -470,7 +546,29 @@ for i in range(len(currweek_order)):
                              mode='lines',
                              marker_color=clr
                              ),
-                  row = int(i/3)+1,col=int(i%3)+1)
+                  row = r, col=c )
+    if c == 1:
+        tsigs = cleanTicks([int(complete_weeks[cat].max())],
+                           [int(complete_weeks[cat][-1])],
+                           3)
+        tvals = cleanTicks(list(range(0,int(catmax)+5,10)),
+                           tsigs,
+                           5)
+        ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))
+    else:
+        tsigs = cleanTicks([int(complete_weeks[cat].max())],
+                           [int(complete_weeks[cat][-1])],
+                           3)
+        tvals = cleanTicks([],tsigs,2)
+        ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))        
+    fig.update_yaxes(tickmode='array',
+                     tickvals=tvals,
+                     ticktext=ttext,
+                     showgrid = False,
+                     row=r,col=c)  
+    fig.update_xaxes(showgrid=False,row=r,col=c)
 cats = complete_weeks.columns
 for i in range(0,len(cats)):
     fig.add_trace(go.Scatter(x=complete_weeks.index,
@@ -482,12 +580,26 @@ for i in range(0,len(cats)):
                          #showlegend=False,
                          stackgroup='one'                             
                          ),row=5,col=1)
+    tsigs = cleanTicks([int(tot)],
+                       [int(demo_weeks.sum(axis=1)[-1])],
+                       10)
+    tvals = cleanTicks(range(0,int(tot)+10,25),
+                       tsigs,
+                       10)
+    ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))   
+    fig.update_yaxes(showgrid=False,
+                     tickmode='array',
+                     tickvals=tvals,
+                     ticktext=ttext,
+                     row=5,col=1)    
+    fig.update_xaxes(showgrid=False,row=5,col=1)
 
-tot=complete_weeks.sum(axis=1).max()
 fig.update_yaxes(range=(0,catmax+5))
 fig.update_yaxes(range=(0,tot+10),row=5)
 fig.update_layout(title="Weekly COVID-19 Cases by Demographic Groups",
-                  width=1200,height=800,margin=margs
+                  width=1200,height=800,margin=margs,
+                  plot_bgcolor='floralwhite'
                   )
 #plot(fig,filename='graphics/demoweekl_multiples.html')
 div_caseweek = plot(fig, include_plotlyjs=False, output_type='div')
@@ -508,7 +620,7 @@ fig = make_subplots(rows=R+2,cols=3,
                     specs=[[{},{},{}]] * R +
                     [[{'colspan':3,'rowspan':2},None,None],
                      [None,None,None]],                    
-                    shared_yaxes=True,
+                    #shared_yaxes=True,
                     shared_xaxes=True,
                     subplot_titles= list(cumsum_order)+
                     ([''] * (3-len(deathcats)%3)) + 
@@ -517,6 +629,8 @@ fig = make_subplots(rows=R+2,cols=3,
 for i in range(len(cumsum_order)):
     cat = cumsum_order[i]
     clr = cmap[cat]
+    r = int(i/3)+1
+    c=int(i%3)+1
     fig.add_trace(go.Scatter(x=death_total.index,
                              y=death_total[cat],
                              name=cat,
@@ -525,7 +639,25 @@ for i in range(len(cumsum_order)):
                              mode='lines',
                              marker_color=clr
                              ),
-                  row = int(i/3)+1,col=int(i%3)+1)
+                  row = r, col = c)
+    if c == 1:
+        tsigs = [int(death_total[cat].max())]
+        tvals = cleanTicks(list(range(0,int(catmax)+3,5)),
+                           tsigs,
+                           4)
+        ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))
+    else:
+        tsigs = [int(death_total[cat].max())]
+        tvals = cleanTicks([],tsigs,0)        
+        ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))        
+    fig.update_yaxes(tickmode='array',
+                     tickvals=tvals,
+                     ticktext=ttext,
+                     showgrid = False,
+                     row=r,col=c)  
+    fig.update_xaxes(showgrid=False,row=r,col=c)
 cats = death_total.columns
 for i in range(0,len(cats)):
     fig.add_trace(go.Scatter(x=death_total.index,
@@ -535,13 +667,25 @@ for i in range(0,len(cats)):
                          marker_color=cmap[cats[i]],
                          fill='tonexty',
                          stackgroup='one'                         
-                         ),row=R+1,col=1)    
+                         ),row=R+1,col=1)
+    tsigs = [curtot]
+    tvals = cleanTicks(range(0,int(curtot) + 2,10),
+                       tsigs,
+                       5)
+    ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))   
+    fig.update_yaxes(showgrid=False,
+                     tickmode='array',
+                     tickvals=tvals,
+                     ticktext=ttext,
+                     row=R+1,col=1)    
+    fig.update_xaxes(showgrid=False,row=R+1,col=1)    
 
 fig.update_yaxes(range=(0,catmax+3))
-tot = death_daily.sum().sum()
-fig.update_yaxes(range=(0,tot+2), row=R+1)
+fig.update_yaxes(range=(0,curtot+2), row=R+1)
 fig.update_layout(title="Total Deaths by Demographic Groups",
-                  width=1200,height=800,margin=margs)
+                  width=1200,height=800,margin=margs,
+                  plot_bgcolor='floralwhite')
 #plot(fig,filename='graphics/demototals_deaths_multiples.html')
 div_deathtotal = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-DemoDeathTotals.txt','w') as f:
