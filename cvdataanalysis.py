@@ -12,6 +12,7 @@ import numpy as np
 
 
 
+
 #%%
 
 #  *****Depends on Raw Data*****
@@ -367,6 +368,26 @@ def expandUSFData_Weekly(usf_cases,pop):
                       axis=1)
     return reorg
 
+def expandUSFData_all(usfdata,usfpops):
+    def getpop(cfips):
+        return usfpops.loc[cfips]['population']
+    counties = usfdata.index.get_level_values('countyFIPS').unique()
+    batchsize = 5
+    batches = int(np.ceil(len(counties)/5))
+    fullset = pd.DataFrame()
+    for b in range(0,batches):
+        fst = b*batchsize
+        lst = fst+batchsize
+        batch = counties[fst:lst]
+        print('batch {}'.format(b))
+        expanded = [expandUSFData(usfdata.loc[:,:,[c]],
+                                  getpop(c))
+                    for c in batch]
+        expanded = pd.concat(expanded)
+        fullset = pd.concat([expanded,fullset]).sort_index()
+    return fullset        
+            
+    
     
 #%%
 
