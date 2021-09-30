@@ -10,6 +10,7 @@
 from cvdataprep import IDPHDataCollector,loadusafacts
 import pandas as pd
 
+#%%
 if __name__ == '__main__':
     print("\nPulling Updated Totals from IDPH\n")
     #IDPHDataCollector.writeTotals()
@@ -30,11 +31,15 @@ if __name__ == '__main__':
     counties = pd.concat([counties,t],axis=1)
     counties = counties.rename(columns={'Population':'population'})
     c = counties.reset_index().set_index('countyFIPS').rename(columns={'index':'Name'})
+    minset = ['Peoria','Henry','Mercer',
+              'Rock Island','McDonough',
+              'Hancock','Knox','Fulton','Stark','Schuyler',
+              'Warren','Henderson']
     #Scrape all IL counties for totals
-    IDPHDataCollector.writeTotalsAll(counties.index)
+    IDPHDataCollector.writeTotalsAll(minset)
     # Gets all the county data. Only changes if population counts are 
     #  updated
-    IDPHDataCollector.writeCountyData(counties.index)
+    IDPHDataCollector.writeCountyData(minset)
     #IDPHDataCollector.writeTotalsAll(nopop.index)
     #IDPHDataCollector.writeCountyData(nopop.index)
     
