@@ -216,11 +216,11 @@ class IDPHDataCollector:
     currvac = 'api/COVIDVaccine/getVaccineAdministrationCurrent?CountyName='
     @staticmethod
     def getCountyTotals(county='Warren'):
-        colmap = {'reportDate':'date',
+        colmap = {'ReportDate':'date',
                   'CountyName':'county',
-                  'tested':'Total Tests',
-                  'confirmed_cases':'Total Positive',
-                  'deaths':'Total Deaths',
+                  'TotalTested':'Total Tests',
+                  'CumulativeCases':'Total Positive',
+                  'Deaths':'Total Deaths',
                   }
         tots = rq.get(IDPHDataCollector.apibase+\
                       IDPHDataCollector.countyHistAPI+county)
