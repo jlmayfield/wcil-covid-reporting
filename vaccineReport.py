@@ -117,7 +117,7 @@ firstvac = (allofit['New Vaccinated'] > 0).idxmax()[0]
 #%%
 vacdata = allofit[['Total Vaccinated','% Vaccinated','7 Day Avg New Vaccinated']].loc[lastvac,:,:]
 vacdata = vacdata.reset_index().drop(['stateFIPS','date'],axis=1).set_index('countyFIPS')
-statewide = vacdata.loc[17]
+#statewide = vacdata.loc[17]
 vacdata = vacdata[vacdata.index != 17]
 #%%
 
