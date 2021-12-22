@@ -84,6 +84,18 @@ def loadidphdemos(county='Warren', datadir='./'):
                       parse_dates=True)
     return age,race,gender
 
+def loadidphvacdemos(county='Warren', datadir='./'):
+    age = pd.read_csv(datadir+'IDPH_VAX_AGEDEMO_'+county.upper()+'.csv',
+                      index_col=[0,1],
+                      parse_dates=True)
+    race = pd.read_csv(datadir+'IDPH_VAX_RACEDEMO_'+county.upper()+'.csv',
+                      index_col=[0,1],
+                      parse_dates=True)
+    gender = pd.read_csv(datadir+'IDPH_VAX_GENDERDEMO_'+county.upper()+'.csv',
+                      index_col=[0,1],
+                      parse_dates=True)
+    return age,race,gender
+
 def loadusafacts(datadir='./'):
     """
     Read in raw data from USAFacts.org. 
@@ -214,6 +226,8 @@ class IDPHDataCollector:
     demo2 = 'api/COVID/GetCountyDemographics?countyName='
     vac = 'api/COVIDVaccine/getVaccineAdministration?CountyName='
     currvac = 'api/COVIDVaccine/getVaccineAdministrationCurrent?CountyName='
+    vacdemo = '/api/covidvaccine/getVaccineAdministrationDemos?countyname='
+    vacage = 'api/COVIDVaccine/getCOVIDVaccineAdministrationCountyAge?countyname='
     @staticmethod
     def getCountyTotals(county='Warren'):
         colmap = {'ReportDate':'date',
@@ -246,6 +260,68 @@ class IDPHDataCollector:
         e['date'] = pd.to_datetime(e['date'])
         e = e.set_index(['date','Age Group'])
         return e
+    @staticmethod
+    def getVacDemo(county='Warren'):
+        while True:
+            try:
+                demo = rq.get(IDPHDataCollector.apibase+\
+                              IDPHDataCollector.vacdemo+county)  
+                age = rq.get(IDPHDataCollector.apibase+\
+                             IDPHDataCollector.vacage+county)                
+                break
+            except:
+                print('Error Scraping vax demos for '+ county + '. Retrying...')
+                time.sleep(3)            
+        if demo.ok and age.ok:
+            demo = demo.json()
+            age = age.json()
+        else:
+            return pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([])
+        race = demo['Race']
+        gender = demo['Gender']
+        dates = [e['Report_Date'] for es in [race,gender,age] for e in es]
+        dates = set(dates)
+        if not len(dates) == 1:
+            print('Date Conflict in demographic reports')
+            return pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([])
+        date = pd.to_datetime(dates.pop())
+               
+        if len(age) > 0:
+            age_data = pd.DataFrame(age,
+                                    index=pd.Series([date]*len(age),
+                                                    name='date'))
+            age_data['AgeGroup'] = age_data['AgeGroup'].str.strip()
+            drops = ['CountyName','TotalAdministeredDisplay',
+                     'AdministeredCountDisplay', 'PersonsFullyVaccinatedDisplay',
+                     'BoosterDoseAdministeredDisplay', 'Report_Date']
+            age_data = age_data.drop(drops,axis=1).reset_index().set_index(['date','AgeGroup'])
+        else:
+            age_data = pd.DataFrame([])
+        if len(race) > 0:
+            race_data = pd.DataFrame(race,
+                                    index=pd.Series([date]*len(race),
+                                                    name='date'))
+            race_data['Race'] = race_data['Race'].str.strip()
+            drops = ['CountyName','AdministeredCountDisplay',
+                     'PersonsFullyVaccinatedDisplay',
+                     'PersonsVaccinatedOneDoseDisplay',
+                     'BoosterDoseAdministeredDisplay', 'Report_Date']
+            race_data = race_data.drop(drops,axis=1).reset_index().set_index(['date','Race'])
+        else:
+            race_data = pd.DataFrame([])
+        if len(gender) > 0:
+            gender_data = pd.DataFrame(gender,
+                                       index=pd.Series([date]*len(gender),
+                                                    name='date'))
+            gender_data['Gender'] = gender_data['Gender'].str.strip()
+            drops = ['CountyName','GenderDisplay','AdministeredCountDisplay',
+                     'PersonsFullyVaccinatedDisplay',
+                     'PersonsVaccinatedOneDoseDisplay',
+                     'BoosterDoseAdministeredDisplay', 'Report_Date']
+            gender_data = gender_data.drop(drops,axis=1).reset_index().set_index(['date','Gender'])
+        else:
+            gender_data = pd.DataFrame([])
+        return race_data,gender_data,age_data
     @staticmethod
     def getDailyDemo(day,county='Warren'):
         while True:
@@ -425,6 +501,11 @@ class IDPHDataCollector:
         age_data.to_csv('IDPH_AGEDEMO_'+county.upper()+'.csv')
         race_data.to_csv('IDPH_RACEDEMO_'+county.upper()+'.csv')
         gender_data.to_csv('IDPH_GENDERDEMO_'+county.upper()+'.csv')
+    def writeVacDemos(county='Warren'):
+        race_data,gender_data,age_data = IDPHDataCollector.getVacDemo(county)
+        age_data.to_csv('IDPH_VAX_AGEDEMO_'+county.upper()+'.csv')
+        race_data.to_csv('IDPH_VAX_RACEDEMO_'+county.upper()+'.csv')
+        gender_data.to_csv('IDPH_VAX_GENDERDEMO_'+county.upper()+'.csv')
     def updateDemos(county="Warren"):        
         agecurr = pd.read_csv('IDPH_AGEDEMO_'+county.upper()+'.csv',
                               index_col=[0,1])
@@ -445,6 +526,25 @@ class IDPHDataCollector:
             agecurr.to_csv('IDPH_AGEDEMO_'+county.upper()+'.csv')
             racecurr.to_csv('IDPH_RACEDEMO_'+county.upper()+'.csv')
             gendercurr.to_csv('IDPH_GENDERDEMO_'+county.upper()+'.csv')
+    def updateVacDemos(county="Warren"):        
+        agecurr = pd.read_csv('IDPH_VAX_AGEDEMO_'+county.upper()+'.csv',
+                              index_col=[0,1])
+        racecurr = pd.read_csv('IDPH_VAX_RACEDEMO_'+county.upper()+'.csv',
+                              index_col=[0,1])
+        gendercurr = pd.read_csv('IDPH_VAX_GENDERDEMO_'+county.upper()+'.csv',
+                              index_col=[0,1])
+        nextday_file = pd.to_datetime(agecurr.index.get_level_values('date')[-1])+pd.Timedelta(1,unit='D')
+        today = pd.to_datetime(pd.to_datetime('today').date())
+        if today - nextday_file > pd.Timedelta(0,unit='D'):
+            print('Updating Vaccine Data')
+            racenew,gendernew,agenew = IDPHDataCollector.getDemoHistory(nextday_file,
+                                                                        today,county)
+            agecurr = pd.concat([agecurr,agenew])
+            racecurr = pd.concat([racecurr,racenew])
+            gendercurr = pd.concat([gendercurr,gendernew])
+            agecurr.to_csv('IDPH_VAX_AGEDEMO_'+county.upper()+'.csv')
+            racecurr.to_csv('IDPH_VAX_RACEDEMO_'+county.upper()+'.csv')
+            gendercurr.to_csv('IDPH_VAX_GENDERDEMO_'+county.upper()+'.csv')
     
         
 
