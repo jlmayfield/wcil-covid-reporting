@@ -214,6 +214,8 @@ class IDPHDataCollector:
     demo2 = 'api/COVID/GetCountyDemographics?countyName='
     vac = 'api/COVIDVaccine/getVaccineAdministration?CountyName='
     currvac = 'api/COVIDVaccine/getVaccineAdministrationCurrent?CountyName='
+    vacdemo = '/api/covidvaccine/getVaccineAdministrationDemos?countyname='
+    vacage = 'api/COVIDVaccine/getCOVIDVaccineAdministrationCountyAge'
     @staticmethod
     def getCountyTotals(county='Warren'):
         colmap = {'ReportDate':'date',
@@ -246,6 +248,67 @@ class IDPHDataCollector:
         e['date'] = pd.to_datetime(e['date'])
         e = e.set_index(['date','Age Group'])
         return e
+    @staticmethod
+    def getVacDemo(county='Warren'):
+        while True:
+            try:
+                demo = rq.get(IDPHDataCollector.apibase+\
+                              IDPHDataCollector.vacdemo+county)        
+                break
+            except:
+                print('Error Scraping vax demos for '+ county + '. Retrying...')
+                time.sleep(3)            
+        if demo.ok:
+            demo = demo.json()
+        else:
+            return pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([])
+        # extract date for report. should be equiv to day...
+        date = pd.to_datetime("{}-{}-{}".format(demo['lastUpdatedDate']['year'],
+                                                demo['lastUpdatedDate']['month'],
+                                                demo['lastUpdatedDate']['day']))
+        # extract all the demographic totals        
+        f = demo['county_demographics'][0]
+        # county level information (total-totals, name, etc) This should be duplicate info
+        county_data = pd.DataFrame(dict(itertools.islice(f.items(),3)),
+                                   index=[date]).rename(columns={'confirmed_cases':'Total Positive',
+                                                                 'total_tested':'Total Tests'})
+        # for real just the demo data this time
+        demo_data = f['demographics']
+        # organize age,race, and gender
+        age = demo_data['age']
+        if len(age) > 0:
+            age_data = pd.DataFrame(demo_data['age'],
+                                index=pd.Series([date]*len(demo_data['age']),name='date'))
+            age_data['age_group'] = age_data['age_group'].str.strip()
+            age_data = age_data.drop('race',axis=1).reset_index().set_index(['date','age_group'])
+            age_data = age_data.rename(columns={'count':'Total Positive',
+                                                'tested':'Total Tested'})
+        else:
+            age_data = pd.DataFrame([])
+        race = demo_data['race']
+        if len(race) > 0:
+            race_data = pd.DataFrame(demo_data['race'],
+                                     index=pd.Series([date]*len(demo_data['race']),name='date'))
+            race_data['description'] = race_data['description'].str.strip()
+            race_data = race_data.rename(columns={'description':'race_group',
+                                                  'count':'Total Positive',
+                                                  'tested':'Total Tested'})
+            race_data = race_data.drop('color',axis=1).reset_index().set_index(['date',
+                                                                                'race_group'])                         
+        else:
+            race_data = pd.DataFrame([])
+        gender = demo_data['gender']
+        if len(gender) > 0:
+            gender_data = pd.DataFrame(demo_data['gender'],
+                                       index=pd.Series([date]*len(demo_data['gender']),name='date'))
+            gender_data = gender_data.rename(columns={'description':'sex_group',
+                                                      'count':'Total Positive',
+                                                      'tested':'Total Tested'})
+            gender_data = gender_data.drop('color',axis=1).reset_index().set_index(['date',
+                                                                                    'sex_group'])
+        else:
+            gender_data = pd.DataFrame([])
+        return race_data,gender_data
     @staticmethod
     def getDailyDemo(day,county='Warren'):
         while True:
