@@ -15,6 +15,7 @@ if __name__ == '__main__':
     print("\nPulling Updated Totals from IDPH\n")
     #IDPHDataCollector.writeTotals()
     IDPHDataCollector.updateDemos()
+    IDPHDataCollector.updateVacDemos()
     counties = IDPHDataCollector.getCountyData()
     nopop = counties[-2:].set_index('County')
     counties = counties[:-2].set_index('County')
