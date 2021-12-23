@@ -536,16 +536,19 @@ class IDPHDataCollector:
         nextday_file = pd.to_datetime(agecurr.index.get_level_values('date')[-1])+pd.Timedelta(1,unit='D')
         today = pd.to_datetime(pd.to_datetime('today').date())
         if today - nextday_file > pd.Timedelta(0,unit='D'):
-            print('Updating Vaccine Data')
-            racenew,gendernew,agenew = IDPHDataCollector.getDemoHistory(nextday_file,
-                                                                        today,county)
-            agecurr = pd.concat([agecurr,agenew])
-            racecurr = pd.concat([racecurr,racenew])
-            gendercurr = pd.concat([gendercurr,gendernew])
-            agecurr.to_csv('IDPH_VAX_AGEDEMO_'+county.upper()+'.csv')
-            racecurr.to_csv('IDPH_VAX_RACEDEMO_'+county.upper()+'.csv')
-            gendercurr.to_csv('IDPH_VAX_GENDERDEMO_'+county.upper()+'.csv')
-    
+            print('Updating Vaccine Data. Expecting ' + str(nextday_file.date()) + ' or later.')
+            racenew,gendernew,agenew = IDPHDataCollector.getVacDemo(county)
+            if racenew.index[0][0] >= nextday_file:
+                print('Updating with vaccine data dated ' + str(racenew.index[0][0].date()))
+                agecurr = pd.concat([agecurr,agenew])
+                racecurr = pd.concat([racecurr,racenew])
+                gendercurr = pd.concat([gendercurr,gendernew])            
+                agecurr.to_csv('IDPH_VAX_AGEDEMO_'+county.upper()+'.csv')
+                racecurr.to_csv('IDPH_VAX_RACEDEMO_'+county.upper()+'.csv')
+                gendercurr.to_csv('IDPH_VAX_GENDERDEMO_'+county.upper()+'.csv')
+            else:
+                print('No new vaccine data found.')
+        
         
 
     
