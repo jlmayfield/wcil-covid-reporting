@@ -32,93 +32,103 @@ warren = [17187]
 p = 16981
 
 
+#%%
+
+def weekly(daily,nweeks=1):
+    basis = daily[['New Positive']]
+    wcil = basis.groupby(pd.Grouper(level='date',
+                                      freq=str(nweeks)+'W-SUN',
+                                      closed='left',
+                                      label='left')).sum()
+    #wcil['% New Positive'] = wcil['New Positive']/wcil['New Tests']
+    return wcil
+
 
 #%% 
 
 population,cases,deaths = cvdp.loadusafacts()
 reports_wchd, demo_wchd, death_wchd = cvdp.loadwchd()
 
-data_idph = pd.read_csv('ILDPH_Reports.csv',
-                        header=[0],index_col=0,
-                        parse_dates=True).fillna(0)
-
+data_idph = cvdp.loadidphdaily()
 
 #%%
-start_date = pd.to_datetime('2020-11-08')
-end_date = pd.to_datetime('2020-11-23') #+ pd.Timedelta(1,unit='D')
+start_date = pd.to_datetime('2020-04-09')
+end_date = pd.to_datetime('2022-01-01') #+ pd.Timedelta(1,unit='D')
 
-full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
-tests_wchd = full_tests_wchd.loc[:,17,17187].loc[start_date:end_date]
-tests_wchd = tests_wchd[['New Positive','New Tests']]
+wchd_last_daily = pd.to_datetime('2021-01-23')
+
+#%%
+
+full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd)).loc[:,17,17187]
+daily_wchd = full_tests_wchd.loc[:wchd_last_daily]
+weekly_wchd = full_tests_wchd.loc[wchd_last_daily+pd.Timedelta(1,unit='D'):]
+
+weekly_wchd = pd.concat([weekly(daily_wchd),weekly(weekly_wchd)])
+
+#%%
 
 
 full_tests_usafacts = cvdp.prepusafacts(cases,deaths).loc[:,:,[17187]]
 tests_usaf = cvda.expandUSFData(full_tests_usafacts, population).loc[:,17,17187].loc[start_date:end_date]
-tests_usaf = tests_usaf[['New Positive']]
 
-tests_idph = data_idph[['New Positive','New Tests']].loc[start_date:end_date].astype(int)
+weekly_usaf = weekly(tests_usaf)
+#%%
+
+tests_idph = cvda.expandIDPHDaily(cvdp.prepidphdaily(data_idph))
+weekly_idph = weekly(tests_idph)
+
+#%%
+
+weekly_idph['source'] = 'IDPH'   
+weekly_usaf['source'] = 'USAFacts'
+weekly_wchd['source'] = 'WCHD'
+
+idph = weekly_idph.reset_index().set_index(['date','source'])
+usaf = weekly_usaf.reset_index().set_index(['date','source'])
+wchd = weekly_wchd.reset_index().set_index(['date','source'])
+all_sources = pd.concat([wchd,idph,usaf]).sort_index()
 
 
 #%%
 
-tests_idph['New Negative'] = tests_idph['New Tests'] - tests_idph['New Positive']
-tests_wchd['New Negative'] = tests_wchd['New Tests'] - tests_wchd['New Positive']
-tests_idph['Positvity'] = tests_idph['New Positive']/tests_idph['New Tests']
-tests_wchd['Positvity'] = tests_wchd['New Positive']/tests_wchd['New Tests']
 
-tests_idph['source'] = 'IDPH'   
-tests_usaf['source'] = 'USAFacts'
-tests_wchd['source'] = 'WCHD'
-
-idph = tests_idph.reset_index().set_index(['date','source'])
-usaf = tests_usaf.reset_index().set_index(['date','source'])
-wchd = tests_wchd.reset_index().set_index(['date','source'])
-all_sources = pd.concat([wchd,idph,usaf])
+idph = all_sources.loc[(slice(None),'IDPH'),:]
+wchd = all_sources.loc[(slice(None),'WCHD'),:]
+usaf = all_sources.loc[(slice(None),'USAFacts'),:]
+days = [ d.strftime('%m/%d') for d in idph.index.get_level_values('date') ]
 
 #%%
 
-wcVil = all_sources.loc[(slice(None),['WCHD','IDPH']),:]
-tots = wcVil.iloc[:,0:3].groupby(level=1).sum()
-tots['Positivity'] = tots['New Positive']/tots['New Tests']
-
-weeks = wcVil.iloc[:,:3].groupby([pd.Grouper(level=1),
-                       pd.Grouper(level=0,freq='W-SUN',
-                                  closed='left',label='left')]).sum()
-
-weeks['per 100k'] = weeks['New Positive'] * 100000 / p
-weeks['Positivity'] = weeks['New Positive'] / weeks['New Tests']
-
-
+df = all_sources.reset_index()
+fig = px.bar(df, x="date", y="New Positive", color="source", 
+             barmode="group",             
+             )
+fig.update_layout(title='Weekly Case Reports: WCHD vs IDPH vs USAFacts',                  
+                  bargroupgap=.3)
+plot(fig,filename='graphics/weekly-comparison-2.html')
 
 #%%
-
-df = weeks.reset_index()
-idph = df[df['source']=='IDPH']
-wchd = df[df['source']=='WCHD']
-days = [ d.strftime('%m/%d') for d in df['date'] ][:len(df)//2]
-
+clrs = px.colors.qualitative.Prism
 fig = go.Figure(data=[
-    go.Bar(name='Positive',
+    go.Bar(name='WCHD',
            x=[days,['WCHD']*len(days)],
            y=wchd['New Positive'],
-           marker_color='salmon'),
-    go.Bar(name='Negative',
-           x=[days,['WCHD']*len(days)],
-           y=wchd['New Negative'],
-           marker_color='deepskyblue'),
-    go.Bar(name='Positive',
+           marker_color=clrs[1]
+           ),
+    go.Bar(name='IDPH',
            x=[days,['IDPH']*len(days)],
            y=idph['New Positive'],
-           marker_color='salmon',
-           showlegend=False),
-    go.Bar(name='Negative',
-           x=[days,['IDPH']*len(days)],
-           y=idph['New Negative'],
-           marker_color='deepskyblue',
-           showlegend=False)    
+           marker_color=clrs[2]
+           ),
+    go.Bar(name='USAFacts.org',
+           x=[days,['USAFacts']*len(days)],
+           y=usaf['New Positive'],
+           marker_color=clrs[3]
+           )
     ])
 fig.update_layout(barmode='stack',
-                  title='Weekly Test Results: IDPH vs WCHD')
+                  title='Weekly Case Reports: WCHD vs IDPH vs USAFacts',                  
+                  bargap=.2)
 plot(fig,filename='graphics/weekly-comparison.html')
 weeklydiv = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/source-comparison-weekly.txt','w') as f:
