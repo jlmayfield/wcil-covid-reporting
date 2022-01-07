@@ -236,7 +236,9 @@ fig.update_layout(title='Age Demographic Breakdown in ~1000 Case Increments',
                                             r=0, #right margin
                                             b=20, #bottom margin
                                             t=65  #top margin
-                                            ))
+                                            ),
+                  width=1200,
+                  height=600)
 hist = plot(fig,include_plotlyjs=False,output_type='div')
 with open('graphics/first3kdemos.txt','w') as f:
     f.write(hist)
