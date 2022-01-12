@@ -45,8 +45,7 @@ margs = go.layout.Margin(l=0, #left margin
 def demoexpand_daily(tots):
     demo_name = tots.index.names[1]
     news = tots.groupby(level=demo_name).diff().fillna(0)
-    news.columns = ['New Positive','New Tests','New Deaths']
-    
+    news.columns = ['New Positive','New Tests','New Deaths']    
     return pd.concat([tots,news],axis=1)
 
 
