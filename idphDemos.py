@@ -114,6 +114,7 @@ def ticktext(ticks,sig,f,g=lambda t:str(t)):
 
 idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(cvdp.loadidphdaily()))
 
+
 # from IL DPH site for vaccine data (1/31/21)
 p = 17032
 
@@ -322,3 +323,64 @@ with open('graphics/WCIL-IDPHAgeDemoWeekly.txt','w') as f:
     f.write(div_caseweek)
     f.close()
 
+#%%
+
+wchd_case,wchd_demo,wchd_deaths = cvdp.loadwchd()
+
+# clear daily numbers by each category
+demo_daily = wchd_demo.copy().reorder_levels([1,0],axis=1)
+demo_daily = demo_daily.reindex(sorted(demo_daily.columns),axis=1)
+demo_daily.columns = [i[1]+ ' ' + i[0] for i in demo_daily.columns]
+demo_daily.index.name = 'date'
+
+
+# weekly totals
+wchd_weekly = demo_daily.groupby(pd.Grouper(level='date',
+                                           freq='W-SUN',
+                                           closed='left',
+                                           label='left')).sum() 
+
+
+
+#%%
+
+# age norm groups: 0-19,20-40,40-60,60-80,80+
+
+def wchddemostonorms(wchd):
+    def collect(data,grp,newname):
+        grped = data[grp].sum(axis=1).rename('New Positive').to_frame()
+        grped['age_group'] = newname        
+        grped = pd.concat([grped,grped['New Positive'].cumsum().rename('Total Positive')],
+                          axis=1)
+        grped = grped.reset_index().set_index(['date','age_group']).sort_index()       
+        return grped        
+    normgrps = {'0-19':['Female 0-10', 'Male 0-10', 'Female 10-20', 'Male 10-20'],
+                '20-39':['Female 20-40', 'Male 20-40'],
+                '40-59':['Female 40-60', 'Male 40-60'],
+                '60-79':['Female 60-80', 'Male 60-80'],
+                '80+':['Female 80-100', 'Male 80-100']}
+    allgrps = pd.concat( [collect(wchd,normgrps[n],n) for n in normgrps])
+    return allgrps.sort_index().astype(int)
+    
+    
+
+def idphdemostonorms(idph):
+    def collect(data,grp,newname):
+        grped = data.loc[(slice(None),grp),:].groupby('date').sum()
+        grped['age_group'] = newname        
+        grped = grped.reset_index().set_index(['date','age_group']).sort_index()       
+        return grped     
+    normgrps = { '0-19':['<20'],
+                 '20-39':['20-29','30-39'],
+                 '40-59':['40-49','50-59'],
+                 '60-79':['60-69','70-79'],
+                 '80+':['80+']}
+    allgrps = pd.concat( [collect(idph,normgrps[n],n) for n in normgrps])
+    return allgrps.sort_index().astype(int)
+
+#%%
+
+#normed age demo groups
+idph_ages_normed = idphdemostonorms(age_weekly)
+wchd_ages_normed = wchddemostonorms(wchd_weekly)    
+    
