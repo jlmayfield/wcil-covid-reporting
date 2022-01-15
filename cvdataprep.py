@@ -17,6 +17,53 @@ import time
 
 #%%
 
+# https://data.census.gov/cedsci/table?g=0500000US17187&tid=ACSST5Y2019.S0101&moe=true
+class WCILCensus:
+    @staticmethod
+    def loadcensus():
+        return pd.read_csv('WCIL_census_data.csv',
+                           index_col=0)
+    @staticmethod
+    def loadidphgroups():
+        census = WCILCensus.loadcensus()
+        grpmap = {'<20':['00-04', '05-09', '10-14', '15-19'],
+                  '20-29':['20-24', '25-29'],
+                  '30-39':['30-34','35-39'],
+                  '40-49':['40-44','45-49'],
+                  '50-59':['50-54','55-59'],
+                  '60-69':['60-64','65-69'],
+                  '70-79':['70-74','75-79'],
+                  '80+':['80-84','85+']}
+        d = [census.loc[grpmap[g]].sum().sum() for g in grpmap]
+        return pd.DataFrame(data=d,index=grpmap.keys(),columns=['Population Estimate'])
+    @staticmethod 
+    def loadwchdgroups():
+        census = WCILCensus.loadcensus()
+        wchdgrps = {'0-10':['00-04','05-09'],'10-20':['10-14','15-19'],                    
+                    '20-40':['20-24','25-29','30-34','35-39'],
+                    '40-60':['40-44','45-49','50-54','55-59'],
+                    '60-80':['60-64','65-69','70-74','75-79'],
+                    '80-100':['80-84','85+']}
+        d = [census.loc[wchdgrps[g]][s].sum() for g in wchdgrps for s in ['Female','Male']]
+        idx = [s+' '+g for s in ['Female','Male'] for g in wchdgrps]
+        return pd.DataFrame(data=d,index=idx,columns=['Population Estimate'])
+    @staticmethod
+    def loadnormgroups():
+        census = WCILCensus.loadcensus()
+        grps = {'0-19':['00-04','05-09','10-14','15-19'],
+                '20-39':['20-24','25-29','30-34','35-39'],
+                '40-59':['40-44','45-49','50-54','55-59'],
+                '60-79':['60-64','65-69','70-74','75-79'],
+                '80+':['80-84','85+']}
+        d = [census.loc[grps[g]].sum().sum() for g in grps]
+        return pd.DataFrame(data=d,index=grps.keys(),columns=['Population Estimate'])
+        
+        
+        
+        
+        
+
+#%%
 def loadwchd(datadir='./'):  
     """
     Read in raw data from WCHD and prepare as DataFrames
