@@ -15,8 +15,25 @@ import numpy as np
 
 #%%
 
+def censusExpand(census):
+    # total population
+    pop = census.sum().sum()
+    # age group population
+    gtot = census.sum(axis=1)
+    # gender population
+    stot = census.sum()
+    reorg = census.stack().rename('count').to_frame()
+    reorg.index = reorg.index.rename(['age_group','sex'])
+    reorg['% total'] = reorg['count']/pop
+    gpcent = pd.concat([ reorg.loc[(slice(None),g),'count']/stot[g] for g in ['Female','Male'] ]).sort_index().rename('% gender group').to_frame()
+    apcent = pd.concat([ reorg.loc[(g,slice(None)),'count']/gtot[g] for g in gtot.index ]).sort_index().rename('% age group').to_frame()
+    return pd.concat([reorg,apcent,gpcent],axis=1)
 
-
+def censusNoGender(census):
+    if '% total' in census.columns:
+        census = census[['count','% total']]
+    return census.groupby('age_group').sum()
+    
 
 
 #%%
