@@ -29,6 +29,8 @@ margs = go.layout.Margin(l=0, #left margin
                          t=75  #top margin
                          )                  
 
+
+
 def demoexpand_daily(tots):
     demo_name = tots.index.names[1]
     news = tots.groupby(level=demo_name).diff().fillna(0)
@@ -125,6 +127,21 @@ def wchdmultireorg(wchd):
     df = pd.concat([t.drop('age_group',axis=1),
                     agrps],axis=1)
     return df.set_index(['date','source','age_group','sex']).sort_index()
+
+
+def agesexplot(df,src):
+    clrs = px.colors.sequential.RdBu
+    fig = go.Figure(data=[go.Bar(name='Male',
+                                 x=df.index,y=df['Male'],
+                                 marker_color=clrs[10]),
+                          go.Bar(name='Female',
+                                 x=df.index,y=df['Female'],
+                                 marker_color=clrs[0])
+                           ])
+    fig.update_layout(barmode='stack',
+                      title='Age and Sex Demographics in Warren County ('+src+')')
+    fig.update_xaxes(type='category')
+    return fig
     
             
 #%%
@@ -135,44 +152,23 @@ wchdtots = cvdp.WCILCensus.loadwchdgroups() # in WCHD groups
 idphtots = cvdp.WCILCensus.loadidphgroups() # in IDPH groups
 normtots = cvdp.WCILCensus.loadnormgroups() # in Normalized groups
 
+
 #%%
 
-fig = go.Figure(data=[go.Bar(name='Male',x=poptots.index,y=poptots['Male']),
-                      go.Bar(name='Female',x=poptots.index,y=poptots['Female'])
-                       ])
-fig.update_layout(barmode='stack',
-                  title='Age and Sex Demographics in Warren County (Census Estimates)')
-fig.update_xaxes(type='category')
+# Population Demographics: 4 different selections
+
+fig = agesexplot(poptots, 'Census Estimates')
 plot(fig,filename='graphics/census-age_sex.html')
 
-#%%
-fig = go.Figure(data=[go.Bar(name='Male',x=wchdtots.index,y=wchdtots['Male']),
-                      go.Bar(name='Female',x=wchdtots.index,y=wchdtots['Female'])
-                       ])
-fig.update_layout(barmode='stack',
-                  title='Age and Sex Demographics in Warren County (WCHD Reporting Groups)')
-fig.update_xaxes(type='category')
-plot(fig,filename='graphics/census-wchd_groups.html')
+fig = agesexplot(wchdtots, 'WCHD Reporting Groups')
+plot(fig,filename='graphics/wchd-age_sex.html')
 
-#%%
+fig = agesexplot(idphtots, 'IDPH Reporting Groups')
+plot(fig,filename='graphics/idph-age_sex.html')
 
-fig = go.Figure(data=[go.Bar(name='Male',x=idphtots.index,y=idphtots['Male']),
-                      go.Bar(name='Female',x=idphtots.index,y=idphtots['Female'])
-                       ])
-fig.update_layout(barmode='stack',
-                  title='Age and Sex Demographics in Warren County (IDPH Reporting Groups)')
-fig.update_xaxes(type='category')
-plot(fig,filename='graphics/census-idph_groups.html')
+fig = agesexplot(normtots, 'Normalized Groups')
+plot(fig,filename='graphics/norm-age_sex.html')
 
-#%%
-
-fig = go.Figure(data=[go.Bar(name='Male',x=normtots.index,y=normtots['Male']),
-                      go.Bar(name='Female',x=normtots.index,y=normtots['Female'])
-                       ])
-fig.update_layout(barmode='stack',
-                  title='Age and Sex Demographics in Warren County (Normalized Reporting Groups)')
-fig.update_xaxes(type='category')
-plot(fig,filename='graphics/census-norm_groups.html')
 
 
 #%%
@@ -236,9 +232,7 @@ wchdsup['% cases'] = wchdsup['Total Positive']/totcases
 #%%
 
 # Population % vs Total Case % in WCHD Groups
-
-clrs = px.colors.sequential.RdBu
-
+clrs=px.colors.sequential.RdBu
 df = wchdsup[['% total','% cases']]
 fig = go.Figure(
         data=[go.Bar(name='Male Population',
