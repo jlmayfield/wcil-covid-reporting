@@ -9,7 +9,7 @@ Created on Wed Jan 12 12:33:10 2022
 
 
 import pandas as pd
-import numpy as np
+from math import ceil,floor
 
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -19,7 +19,6 @@ import plotly.express as px
 
 import cvdataprep as cvdp
 import cvdataanalysis as cvda
-import cvdataviz as cvdv
 
 #%%
 
@@ -30,14 +29,6 @@ margs = go.layout.Margin(l=0, #left margin
                          t=75  #top margin
                          )                  
 
-gbyweek = pd.Grouper(level='date',
-                     freq='W-SUN',
-                     closed='left',
-                     label='left')
-
-gbymonth = pd.Grouper(level='date',
-                      freq='MS')
-
 def demoexpand_daily(tots):
     demo_name = tots.index.names[1]
     news = tots.groupby(level=demo_name).diff().fillna(0)
@@ -46,6 +37,10 @@ def demoexpand_daily(tots):
     return pd.concat([tots,news],axis=1)
 
 def demo_weekly(dailies):
+    gbyweek = pd.Grouper(level='date',
+                         freq='W-SUN',
+                         closed='left',
+                         label='left')
     demo_name = dailies.index.names[1]
     news = dailies[['New Positive','New Tests']]
     news = news.groupby([gbyweek,demo_name]).sum()
@@ -110,7 +105,80 @@ def ticktext(ticks,sig,f,g=lambda t:str(t)):
     ts = [stringify(t) for t in ticks]
     return ts
 
-#%%%
+
+
+def wchdreorg(wchd):
+    def grpreorg(g):
+        r = wchd[g].rename('New Positive').to_frame()
+        r['age_group'] = g
+        r['source'] = 'WCHD'
+        r = r.reset_index().set_index(['date','age_group','source'])
+        return r
+    grps = wchd.columns
+    df = pd.concat([grpreorg(g) for g in grps])
+    return df.sort_index()  
+
+
+def wchdmultireorg(wchd):
+    t = wchd.reset_index()
+    agrps = t['age_group'].str.split(expand=True).rename(columns={0:'sex',1:'age_group'})
+    df = pd.concat([t.drop('age_group',axis=1),
+                    agrps],axis=1)
+    return df.set_index(['date','source','age_group','sex']).sort_index()
+    
+            
+#%%
+
+# Different Slices of Census data
+poptots = cvdp.WCILCensus.loadcensus() # as is
+wchdtots = cvdp.WCILCensus.loadwchdgroups() # in WCHD groups
+idphtots = cvdp.WCILCensus.loadidphgroups() # in IDPH groups
+normtots = cvdp.WCILCensus.loadnormgroups() # in Normalized groups
+
+#%%
+
+fig = go.Figure(data=[go.Bar(name='Male',x=poptots.index,y=poptots['Male']),
+                      go.Bar(name='Female',x=poptots.index,y=poptots['Female'])
+                       ])
+fig.update_layout(barmode='stack',
+                  title='Age and Sex Demographics in Warren County (Census Estimates)')
+fig.update_xaxes(type='category')
+plot(fig,filename='graphics/census-age_sex.html')
+
+#%%
+fig = go.Figure(data=[go.Bar(name='Male',x=wchdtots.index,y=wchdtots['Male']),
+                      go.Bar(name='Female',x=wchdtots.index,y=wchdtots['Female'])
+                       ])
+fig.update_layout(barmode='stack',
+                  title='Age and Sex Demographics in Warren County (WCHD Reporting Groups)')
+fig.update_xaxes(type='category')
+plot(fig,filename='graphics/census-wchd_groups.html')
+
+#%%
+
+fig = go.Figure(data=[go.Bar(name='Male',x=idphtots.index,y=idphtots['Male']),
+                      go.Bar(name='Female',x=idphtots.index,y=idphtots['Female'])
+                       ])
+fig.update_layout(barmode='stack',
+                  title='Age and Sex Demographics in Warren County (IDPH Reporting Groups)')
+fig.update_xaxes(type='category')
+plot(fig,filename='graphics/census-idph_groups.html')
+
+#%%
+
+fig = go.Figure(data=[go.Bar(name='Male',x=normtots.index,y=normtots['Male']),
+                      go.Bar(name='Female',x=normtots.index,y=normtots['Female'])
+                       ])
+fig.update_layout(barmode='stack',
+                  title='Age and Sex Demographics in Warren County (Normalized Reporting Groups)')
+fig.update_xaxes(type='category')
+plot(fig,filename='graphics/census-norm_groups.html')
+
+
+#%%
+
+# Load and Process IDPH Case data. Pull some important dates and other stats
+
 
 idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(cvdp.loadidphdaily()))
 
@@ -118,212 +186,25 @@ idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(cvdp.loadidphdaily()))
 # from IL DPH site for vaccine data (1/31/21)
 p = 17032
 
+
 idph_age_cats = ['20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+', '<20']
 age,race,gender = cvdp.loadidphdemos('Warren')
 agedemos = demoexpand_daily(age)
 agedemos = agedemos.loc[(slice(None),idph_age_cats),:].sort_index()
-age_weekly = demo_weekly(agedemos)
+age_weekly = demo_weekly(agedemos).astype(int)
+age_weekly['source'] = 'IDPH'
+age_weekly = age_weekly.reset_index().set_index(['date','age_group','source']).sort_index()
 
 demo_groups = age_weekly.index.get_level_values('age_group').unique()
 dates =  age_weekly.index.get_level_values('date').unique()
 last_date = dates[-1]
 last_week = dates[-2]
 
-#%%
-
-# demographic category -> color
-clrs = px.colors.sequential.algae
-cmap = {demo_groups[i]:clrs[i] for i in range(len(demo_groups))}
-
-#%%
-
-# multiples: cumulative Cases 
-#  ticks: col1--> by 100 with current. col 2,3 --> current
-
-cumsum_order = age_weekly.loc[last_date]['Total Positive'].sort_values(ascending=False).index
-curtot = age_weekly.loc[last_date]['Total Positive'].sum()
-catmax = age_weekly.loc[last_date]['Total Positive'].max().max()
-
-#%%
-fig = make_subplots(rows=5,cols=3,
-                    #shared_yaxes=True,
-                    shared_xaxes=True,
-                    specs = [[{},{},{}],
-                             [{},{},{}],
-                             [{},{},None],                             
-                             [{'colspan':3,'rowspan':2},None,None],
-                             [None,None,None]],
-                    subplot_titles=list(cumsum_order)+['All Demographics']
-                    )
-for i in range(len(cumsum_order)):
-    cat = cumsum_order[i]
-    clr = cmap[cat]
-    r = int(i/3)+1
-    c = int(i%3)+1
-    ys = age_weekly.loc[(dates,cat),'Total Positive']
-    fig.add_trace(go.Scatter(x=dates,
-                             y=ys,
-                             name=cat,
-                             showlegend=False,
-                             fill='tozeroy',
-                             mode='lines',
-                             marker_color=clr                             
-                             ),
-                  row = r,col=c)
-    if c == 1:
-        tsigs = [int(ys.max())]
-        tvals = cleanTicks(list(range(0,int(catmax)+10,100)),
-                           tsigs,
-                           50)
-        ttext = ticktext(tvals,tsigs,
-                         lambda v: "<b>{}</b>".format(v))
-    else:
-        tsigs = [int(ys.max())]
-        tvals = cleanTicks([],tsigs,50)
-        ttext = ticktext(tvals,tsigs,
-                         lambda v: "<b>{}</b>".format(v))        
-    fig.update_yaxes(tickmode='array',
-                     tickvals=tvals,
-                     ticktext=ttext,
-                     showgrid = False,
-                     row=r,col=c)  
-    fig.update_xaxes(showgrid=False,row=r,col=c)
-cats = demo_groups
-for i in range(0,len(cats)):
-    fig.add_trace(go.Scatter(x=dates,
-                             y=age_weekly.loc[(dates,cats[i]),'Total Positive'],
-                             mode='lines',
-                             name=cats[i],
-                             marker_color=cmap[cats[i]],
-                             fill='tonexty',
-                             stackgroup='one'                         
-                         ),
-                  row=4,col=1)
-    tsigs = [curtot]
-    tvals = cleanTicks(range(0,int(curtot) + 25,500),
-                       tsigs,
-                       250)
-    ttext = ticktext(tvals,tsigs,
-                         lambda v: "<b>{}</b>".format(v))   
-    fig.update_yaxes(showgrid=False,
-                     tickmode='array',
-                     tickvals=tvals,
-                     ticktext=ttext,
-                     row=5,col=1)    
-    fig.update_xaxes(showgrid=False,row=5,col=1)
-
-fig.update_yaxes(range=(0,catmax+10))
-fig.update_yaxes(range=(0,curtot + 25),row=4)
-fig.update_layout(title="Total COVID-19 Cases by IDPH Age Demographic Groups",
-                  width= 1200,
-                  height= 800,
-                  margin=margs,
-                  plot_bgcolor='floralwhite')
-plot(fig,filename='graphics/idphagedemototals_multiples.html')
-div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/WCIL-IDPHAgeDemoTotals.txt','w') as f:
-    f.write(div_casetotal)
-    f.close()
-
-#%%
-
-
-# multiples: weekly Cases 
 complete_weeks = age_weekly[['New Positive']].loc[:last_week]
-complete_dates = complete_weeks.index.get_level_values('date').unique()
-currweek_order = complete_weeks.loc[last_week]['New Positive'].sort_values(ascending=False).index
-# all time high in a single cat
-catmax = complete_weeks.max()
-# all time high week
-tot=complete_weeks.groupby(level='date').sum().max()
 
 #%%
 
-fig = make_subplots(rows=5,cols=3,
-                    #shared_yaxes=True,
-                    shared_xaxes=True,
-                    specs = [[{},{},{}],
-                             [{},{},{}],
-                             [{},{},None],                             
-                             [{'colspan':3,'rowspan':2},None,None],
-                             [None,None,None]],
-                    subplot_titles= list(currweek_order) + ['All Demographics'])
-for i in range(len(currweek_order)):
-    cat = currweek_order[i]
-    clr = cmap[cat]
-    r = int(i/3)+1
-    c = int(i%3)+1
-    curr = complete_weeks.loc[(slice(None),cat),'New Positive']
-    fig.add_trace(go.Scatter(x=complete_dates,
-                             y=curr,
-                             name=cat,
-                             showlegend=False,
-                             fill='tozeroy',
-                             mode='lines',
-                             marker_color=clr
-                             ),
-                  row = r, col=c )
-    if c == 1:
-        tsigs = cleanTicks([int(curr.max())],
-                           [int(curr[-1])],
-                           3)
-        tvals = cleanTicks(list(range(0,int(catmax)+5,10)),
-                           tsigs,
-                           5)
-        ttext = ticktext(tvals,tsigs,
-                         lambda v: "<b>{}</b>".format(v))
-    else:
-        tsigs = cleanTicks([int(curr.max())],
-                           [int(curr[-1])],
-                           3)
-        tvals = cleanTicks([],tsigs,2)
-        ttext = ticktext(tvals,tsigs,
-                         lambda v: "<b>{}</b>".format(v))        
-    fig.update_yaxes(tickmode='array',
-                     tickvals=tvals,
-                     ticktext=ttext,
-                     showgrid = False,
-                     row=r,col=c)  
-    fig.update_xaxes(showgrid=False,row=r,col=c)
-cats = demo_groups
-for i in range(0,len(cats)):
-    fig.add_trace(go.Scatter(x=complete_dates,
-                         y=complete_weeks.loc[(slice(None),cats[i]),'New Positive'],
-                         mode='lines',
-                         name=cats[i],
-                         marker_color=cmap[cats[i]],
-                         fill='tonexty',
-                         #showlegend=False,
-                         stackgroup='one'                             
-                         ),row=4,col=1)
-    tsigs = cleanTicks([int(tot)],
-                       [int(complete_weeks.groupby(level='date').sum()['New Positive'][-1])],
-                       10)
-    tvals = cleanTicks(range(0,int(tot)+10,25),
-                       tsigs,
-                       10)
-    ttext = ticktext(tvals,tsigs,
-                         lambda v: "<b>{}</b>".format(v))   
-    fig.update_yaxes(showgrid=False,
-                     tickmode='array',
-                     tickvals=tvals,
-                     ticktext=ttext,
-                     row=4,col=1)    
-    fig.update_xaxes(showgrid=False,row=4,col=1)
-
-fig.update_yaxes(range=(0,catmax+5))
-fig.update_yaxes(range=(0,tot+10),row=5)
-fig.update_layout(title="Weekly COVID-19 Cases by IDPH Age Demographic Groups",
-                  width=1200,height=800,margin=margs,
-                  plot_bgcolor='floralwhite'
-                  )
-plot(fig,filename='graphics/idphagedemoweekly_multiples.html')
-div_caseweek = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/WCIL-IDPHAgeDemoWeekly.txt','w') as f:
-    f.write(div_caseweek)
-    f.close()
-
-#%%
+# Load and process WCHD Case Data
 
 wchd_case,wchd_demo,wchd_deaths = cvdp.loadwchd()
 
@@ -341,9 +222,54 @@ wchd_weekly = demo_daily.groupby(pd.Grouper(level='date',
                                            label='left')).sum() 
 
 
+wchd = wchdreorg(wchd_weekly)
+wchd['Total Positive'] = wchd.groupby('age_group').cumsum()
+wchd = wchd.astype(int)
+
+
+wchdsup = wchdmultireorg(wchd).loc[last_week]['Total Positive'].droplevel('source')
+wchdcen = cvda.censusExpand(cvdp.WCILCensus.loadwchdgroups())
+wchdsup = pd.concat([wchdsup,wchdcen],axis=1)
+totcases = wchdsup['Total Positive'].sum()
+wchdsup['% cases'] = wchdsup['Total Positive']/totcases
 
 #%%
 
+# Population % vs Total Case % in WCHD Groups
+
+clrs = px.colors.sequential.RdBu
+
+df = wchdsup[['% total','% cases']]
+fig = go.Figure(
+        data=[go.Bar(name='Male Population',
+                     x=df.index.get_level_values('age_group').unique(),
+                     y=df.loc[(slice(None),'Male'),:].droplevel('sex')['% total'],
+                     marker_color = clrs[10],
+                     offsetgroup=0),
+              go.Bar(name='Female Population',
+                     x=df.index.get_level_values('age_group').unique(),
+                     y=df.loc[(slice(None),'Female'),:].droplevel('sex')['% total'],
+                     offsetgroup=0,
+                     marker_color = clrs[0],
+                     base=df.loc[(slice(None),'Male'),:].droplevel('sex')['% total']),
+              go.Bar(name='Male Cases',
+                     x=df.index.get_level_values('age_group').unique(),
+                     y=df.loc[(slice(None),'Male'),:].droplevel('sex')['% cases'],
+                     marker_color = clrs[9],
+                     offsetgroup=1),
+              go.Bar(name='Female Cases',
+                     x=df.index.get_level_values('age_group').unique(),
+                     y=df.loc[(slice(None),'Female'),:].droplevel('sex')['% cases'],
+                     marker_color = clrs[1],
+                     offsetgroup=1,
+                     base=df.loc[(slice(None),'Male'),:].droplevel('sex')['% cases'])]
+    )
+fig.update_layout(title='Percent of Population vs Percent of Cases',
+                  )
+plot(fig,filename='graphics/popvscases.html')
+
+
+#%% 
 # age norm groups: 0-19,20-40,40-60,60-80,80+
 
 def wchddemostonorms(wchd):
@@ -402,15 +328,18 @@ def normed_age_multiples(normed,src,col):
     
     # demographic category -> color
     clrs = px.colors.sequential.algae
-    cmap = {demo_groups[i]:clrs[2*i+1] for i in range(len(demo_groups))}
+    if len(demo_groups) <= len(clrs) // 2:
+        cmap = {demo_groups[i]:clrs[2*i+1] for i in range(len(demo_groups))}
+    else:
+        cmap = {demo_groups[i]:clrs[i] for i in range(len(demo_groups))}
     # Most recent values
-    curr_totals = age_normed.loc[(last_date,slice(None),src)][col]
+    curr_totals = normed.loc[(last_date,slice(None),src)][col]
     # Order by most recent values
     cumsum_order = curr_totals.sort_values(ascending=False).index.get_level_values('age_group')
     # current col sum
-    curtot = curr_totals.sum()
+    curtot = int(curr_totals.sum())
     # current col max
-    catmax = curr_totals.max().max()
+    catmax = int(curr_totals.max().max())
     # historical weekly cummulative max
     histcummmax = curr_totals.groupby(level='date').sum().max()
     # historical weekly cat max
@@ -424,14 +353,16 @@ def normed_age_multiples(normed,src,col):
     tick_pad_smalls = tick_skip_smalls // 2
     tick_skip_big = tick_foo(curtot // 8)
     tick_pad_big = tick_skip_big // 4
-        
-    fig = make_subplots(rows=4,cols=3,
+    nrows = ceil(len(demo_groups) / 3) + 2
+    specs = [[{},{},{}]]*floor(len(demo_groups)/3)
+    if len(demo_groups)%3 > 0:
+        specs = specs + [[{}]*(len(demo_groups)%3) +\
+                         [None]*(3-len(demo_groups)%3)]
+    specs = specs + [[{'colspan':3,'rowspan':2},None,None], [None,None,None]]
+    fig = make_subplots(rows=nrows,cols=3,
                         #shared_yaxes=True,
                         #shared_xaxes=True,
-                        specs = [[{},{},{}],                             
-                                 [{},{},None],                             
-                                 [{'colspan':3,'rowspan':2},None,None],
-                                 [None,None,None]],
+                        specs = specs,
                         subplot_titles=list(cumsum_order)+['All Demographics']
                         )
     for i in range(len(cumsum_order)):
@@ -439,7 +370,7 @@ def normed_age_multiples(normed,src,col):
         clr = cmap[cat]
         r = int(i/3)+1
         c = int(i%3)+1
-        ys = age_normed.loc[(dates,cat,src),col]
+        ys = normed.loc[(dates,cat,src),col]
         fig.add_trace(go.Scatter(x=dates,
                                  y=ys,
                                  name=cat,
@@ -471,14 +402,14 @@ def normed_age_multiples(normed,src,col):
     cats = cumsum_order
     for i in range(0,len(cats)):
         fig.add_trace(go.Scatter(x=dates,
-                                 y=age_normed.loc[(dates,cats[i],src),col],
+                                 y=normed.loc[(dates,cats[i],src),col],
                                  mode='lines',
                                  name=cats[i],
                                  marker_color=cmap[cats[i]],
                                  fill='tonexty',
                                  stackgroup='one'                         
                              ),
-                      row=3,col=1)
+                      row=nrows-1,col=1)
         tsigs = [curtot,histcummmax]
         tvals = cleanTicks(range(0,int(curtot) + tick_pad_big,tick_skip_big),
                            tsigs,
@@ -489,11 +420,11 @@ def normed_age_multiples(normed,src,col):
                          tickmode='array',
                          tickvals=tvals,
                          ticktext=ttext,
-                         row=3,col=1)    
-        fig.update_xaxes(showgrid=False,row=3,col=1)
+                         row=nrows-1,col=1)    
+        fig.update_xaxes(showgrid=False,row=nrows-1,col=1)
     
     fig.update_yaxes(range=(0,catmax+tick_pad_smalls))
-    fig.update_yaxes(range=(0,curtot + tick_pad_big),row=3)
+    fig.update_yaxes(range=(0,curtot + tick_pad_big),row=nrows-1)
     fig.update_layout(title=col + " COVID-19 Cases by Age Demographic Groups (" + src + ")",
                       width= 1200,
                       height= 800,
@@ -502,13 +433,53 @@ def normed_age_multiples(normed,src,col):
     return fig
 #%%
 
+# IDPH Age Group Totals
+fig = normed_age_multiples(age_weekly,'IDPH','Total Positive')
+plot(fig,filename='graphics/idph_agedemototals_multiples.html')
+div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-IDPHAgeDemoTotals.txt','w') as f:
+    f.write(div_casetotal)
+    f.close()
+
+# IDPH Age Group New  
+fig = normed_age_multiples(complete_weeks,'IDPH','New Positive')
+plot(fig,filename='graphics/idph_agedemonew_multiples.html')
+div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-IDPHAgeDemoNew.txt','w') as f:
+    f.write(div_casetotal)
+    f.close()
+
+#%%
+
+# WCHD Age Group Totals
+fig = normed_age_multiples(wchd,'WCHD','Total Positive')
+plot(fig,filename='graphics/wchd_agedemototals_multiples.html')
+div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-WCHDAgeDemoTotals.txt','w') as f:
+    f.write(div_casetotal)
+    f.close()
+
+# WCHD Age Group New  
+fig = normed_age_multiples(wchd,'WCHD','New Positive')
+plot(fig,filename='graphics/wchd_agedemonew_multiples.html')
+div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
+with open('graphics/WCIL-WCHDAgeDemoNew.txt','w') as f:
+    f.write(div_casetotal)
+    f.close()
+
+
+
+#%%
+
+# Normed Age Groups: IDPH Total Cases
 fig = normed_age_multiples(age_normed,'IDPH','Total Positive')
 plot(fig,filename='graphics/idph_normagedemototals_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-IDPHNormAgeDemoTotals.txt','w') as f:
     f.write(div_casetotal)
     f.close()
-    
+
+# Normed Age Groups: WCHD Total Cases    
 fig = normed_age_multiples(age_normed,'WCHD','Total Positive')
 plot(fig,filename='graphics/wchd_normagedemototals_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
@@ -518,14 +489,15 @@ with open('graphics/WCIL-WCHDNormAgeDemoTotals.txt','w') as f:
 
 #%%
 
-
+# Normed Age Groups: IDPH New Cases 
 fig = normed_age_multiples(age_normed,'IDPH','New Positive')
 plot(fig,filename='graphics/idph_normagedemonew_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-IDPHNormAgeDemoNew.txt','w') as f:
     f.write(div_casetotal)
     f.close()
-    
+ 
+# Normed Age Groups: WCHD New Cases    
 fig = normed_age_multiples(age_normed,'WCHD','New Positive')
 plot(fig,filename='graphics/wchd_normagedemonew_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
@@ -534,4 +506,6 @@ with open('graphics/WCIL-WCHDNormAgeDemoNew.txt','w') as f:
     f.close()
 
 
+
+#%%
 
