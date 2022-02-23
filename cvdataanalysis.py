@@ -335,6 +335,24 @@ def _rankdate(col):
 
 ## Intended use is on previously selected subset of USFacts dataset.
 
+def expandUSFData_short(usf_cases,pop):    
+    reorg = pd.concat([usf_cases,
+                       #_phase(usf_cases),                       
+                       #_dayofweek(usf_cases),
+                       #_ilregions(usf_cases, pop),
+                       _newpos(usf_cases['Total Positive']),
+                       _newdead(usf_cases['Total Deaths'])],
+                      axis=1)    
+    """
+    reorg = pd.concat([reorg,                       
+                       _per100k(reorg['New Positive'], pop),
+                       _per100k(reorg['Total Positive'], pop),
+                       _per100k(reorg['New Deaths'], pop),
+                       _per100k(reorg['Total Deaths'], pop)],
+                      axis=1)    
+    """
+    return reorg
+
 def expandUSFData(usf_cases,pop):    
     reorg = pd.concat([usf_cases,
                        #_phase(usf_cases),                       
