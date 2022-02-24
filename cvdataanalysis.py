@@ -333,24 +333,39 @@ def _rankdate(col):
     ptile = grp.rank(ascending=True,pct=True).rename(name + ' percentile')
     return pd.concat([ranks,ptile],axis=1)
 
+def _joinpops(data,pop):
+    idx = data.index.names 
+    t = data.reset_index()
+    haspop = t[t['countyFIPS'] != 0 ]
+    nopop = t[t['countyFIPS'] == 0]
+    haspop = haspop.join(pop['population'],on='countyFIPS')
+    ret = pd.concat([haspop,nopop]).set_index(idx)    
+    return ret.fillna(0).astype(int).sort_index()
+
+def _per100kusaf(data,colname):
+    newname = colname + ' per 100k'
+    p100k = data[colname]/data['population'] * 100000.0
+    p100k = p100k.fillna(0)
+    p100k.replace(np.inf, 0, inplace=True)
+    p100k.name = newname
+    return p100k    
+    
+    
+
 ## Intended use is on previously selected subset of USFacts dataset.
 
-def expandUSFData_short(usf_cases,pop):    
-    reorg = pd.concat([usf_cases,
-                       #_phase(usf_cases),                       
-                       #_dayofweek(usf_cases),
-                       #_ilregions(usf_cases, pop),
+def expandUSFData_short(usf_cases,pop): 
+    reorg = _joinpops(usf_cases,pop)
+    reorg = pd.concat([reorg,
                        _newpos(usf_cases['Total Positive']),
                        _newdead(usf_cases['Total Deaths'])],
-                      axis=1)    
-    """
+                      axis=1)   
     reorg = pd.concat([reorg,                       
-                       _per100k(reorg['New Positive'], pop),
-                       _per100k(reorg['Total Positive'], pop),
-                       _per100k(reorg['New Deaths'], pop),
-                       _per100k(reorg['Total Deaths'], pop)],
+                       _per100kusaf(reorg,'New Positive'),
+                       _per100kusaf(reorg,'Total Positive'),
+                       _per100kusaf(reorg,'New Deaths'),
+                       _per100kusaf(reorg,'Total Deaths')],
                       axis=1)    
-    """
     return reorg
 
 def expandUSFData(usf_cases,pop):    
@@ -389,11 +404,12 @@ def expandUSFData_Weekly(usf_cases,pop):
     totstuff = usf_cases.reset_index().set_index('date').groupby(['countyFIPS','stateFIPS']).resample('W-SUN',closed='left',label='left').max()
     totstuff = totstuff[['Total Positive','Total Deaths']].reset_index().set_index(['date','stateFIPS','countyFIPS']).sort_index()
     reorg = pd.concat([newstuff,totstuff],axis=1)
+    reorg = _joinpops(reorg,pop)
     reorg = pd.concat([reorg,                       
-                       _per100k(reorg['New Positive'], pop),
-                       _per100k(reorg['Total Positive'], pop),
-                       _per100k(reorg['New Deaths'], pop),
-                       _per100k(reorg['Total Deaths'], pop)],
+                       _per100kusaf(reorg,'New Positive'),
+                       _per100kusaf(reorg,'Total Positive'),
+                       _per100kusaf(reorg,'New Deaths'),
+                       _per100kusaf(reorg,'Total Deaths')],
                       axis=1)    
     reorg = pd.concat([reorg,
                        _sevenDayAvg(reorg['New Positive']),
