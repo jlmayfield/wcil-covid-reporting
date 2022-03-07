@@ -139,7 +139,7 @@ with open('graphics/WCIL-TimeTo1000.txt','w') as f:
     f.close()
 
 
-    #%%
+#%%
 
 # Daily case counts with 7 day average and 'by thousand' groups
 
@@ -174,7 +174,10 @@ fig.add_vrect(x0=day_one_2k, x1=second_1k,y1=(secondmax-minmin)/totrange,
               fillcolor="gray", opacity=0.2, line_width=0)
 fig.add_vrect(x0=day_one_3k, x1=third_1k,y1=(thirdmax-minmin)/totrange,
               annotation_text="Third 1000 Cases", annotation_position="top left",
-              fillcolor="firebrick", opacity=0.2, line_width=0)
+              fillcolor="gray", opacity=0.2, line_width=0)
+fig.add_vrect(x0=day_one_4k, x1=third_1k,y1=(thirdmax-minmin)/totrange,
+              annotation_text="Third 1000 Cases", annotation_position="top left",
+              fillcolor="gray", opacity=0.2, line_width=0)
 
 fig.update_layout(title_text='Daily New Positive COVID Tests <br> Warren County, IL',
                   height=600,width=1200,
