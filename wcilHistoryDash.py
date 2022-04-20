@@ -704,8 +704,16 @@ permalink: /wcil-history-report/
 ---
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 """
-timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
-header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+#timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
+#header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
+
+header = header + """
+<p><large> On April 4, 2022, the Warren County Health Department 
+issued their last weekly covid report. This report covered data up through 
+and including April 2, 2022.  This page pulled data from the weekly WCHD 
+reports and, at this time, is no longer updated.
+</large><p>
+"""
 
 front = """
 <small><p> Case data for this page comes from reports issued by the 
