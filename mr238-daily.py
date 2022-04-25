@@ -209,18 +209,18 @@ margs = go.layout.Margin(l=0, #left margin
 
 df = this_week.reset_index().sort_values('date',ascending=False)
 thisweek = go.Table(header={'values':['<b>Date</b>',
-                                      '<b>Positivity Rate</b>',
+                                      #'<b>Positivity Rate</b>',
                                       '<b>New Cases<br>per 100k (actual)</b>'
                                       ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                              cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
-                                              styleprate_text(df['% New Positive']),
+                                             # styleprate_text(df['% New Positive']),
                                               stylecp100k_text( df[['Cases per 100k','New Positive']])
                                               ],
                                     'align':'left',
                                     'fill_color':['whitesmoke',
-                                                  styleprate_cell(df['% New Positive']),
+                                              #    styleprate_cell(df['% New Positive']),
                                                   stylecp100k_cell(df['Cases per 100k']),
                                                  ],
                                     'height': 30 }
@@ -237,7 +237,7 @@ weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
 
 df = threeweeks.reset_index().sort_values('date',ascending=False)
 vals = [df['date'].apply(lambda d: d.strftime("%B %d")),
-        styleprate_text(df['% New Positive']),
+        #styleprate_text(df['% New Positive']),
         stylecp100k_text(df[['Cases per 100k','New Positive']]),
         stylestreak_text(df['Consecutive Case Increases']),
         styleyouth_text(df[['Youth Cases','Consecutive Youth Increases']])]        
@@ -245,12 +245,12 @@ vals = [df['date'].apply(lambda d: d.strftime("%B %d")),
 vals[0].iloc[0] = '<i>' + vals[0].iloc[0] + '<i>' 
 # cell colors
 clrs = ['whitesmoke',
-        styleprate_cell(df['% New Positive']),
+        #styleprate_cell(df['% New Positive']),
         stylecp100k_cell(df['Cases per 100k']),
         stylestreak_cell(df['Consecutive Case Increases']),        
         styleyouth_cell(df[['Youth Cases','Consecutive Youth Increases']])]
 weekly_table = go.Table(header={'values':['<b>Week Start Date</b>',
-                                          '<b>Positivity Rate</b>',
+         #                                 '<b>Positivity Rate</b>',
                                           '<b>New Cases<br>per 100k (actual)</b>',                                                                                     
                                           '<b>Consecutive Weeks<br>New Case Increases</b>',
                                           '<b>Youth Cases<br>Current (Increases)</b>',
@@ -324,13 +324,20 @@ Presumably this is a retraction. The data for that day shows -1
 cases. It would seem there were 0 new cases on 2/19 and one 
 fewer case in the days proceeding it. </small></p> """
 
+apr22note = """
+<p><small> On 4/22/22, the IDPH seemed to have stopped reporting the 
+number of tests. This resulted in a loss of that data as a whole and 
+makes postivity rate impossible to report. Starting on 4/25/22, both 
+the test count and the positivity rating will no longer be reported here.</small></p>""" 
+
+
 htmlblock = '{::options parse_block_html="true" /}\n\n'
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
-header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
-mdpage = header + jan19note + feb19note + weeklydiv + '\n\n' + weekdiv  
+header = header + '<p><small>last updated:  ' + timestamp + '</small></p>\n\n'
+mdpage = header + jan19note + feb19note + apr22note + weeklydiv + '\n\n' + weekdiv  
 
 with open('mr238/MR238-Daily.txt','w') as f:
-    f.write(weeklydiv + '\n\n' + weekdiv )
+    f.write(apr22note + '\n\n' + weeklydiv + '\n\n' + weekdiv )
     f.close()
     
 #with open('mr238/03-explanations.md','r') as f:

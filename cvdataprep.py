@@ -284,7 +284,7 @@ class IDPHDataCollector:
                   'Deaths':'Total Deaths',
                   }
         tots = rq.get(IDPHDataCollector.apibase+\
-                      IDPHDataCollector.countyHistAPI+county)
+                      IDPHDataCollector.countyHistAPI+county)        
         d = pd.DataFrame(tots.json()['values']).rename(columns=colmap)
         d['date'] = pd.to_datetime(d['date'])
         d = d.set_index('date')        

@@ -94,26 +94,26 @@ margs = go.layout.Margin(l=0, #left margin
 
 df = dailywindow.reset_index().sort_values('date',ascending=False)
 daily = go.Table(header={'values':['<b>Date</b>',                                      
-                                            '<b>New Tests</b>',
+                                            #'<b>New Tests</b>',
                                             '<b>New Cases (per 100k)</b>',                                           
-                                            '<b>Positivity Rate</b>',                                           
+                                            #'<b>Positivity Rate</b>',                                           
                                             '<b>New Deaths</b>',
                                             '<b>New Full Vaccinations'
                                             ],
                                   'align':'left',
                                   'fill_color':'gainsboro'},
                            cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d")),
-                                            df['New Tests'],
+                                            #df['New Tests'],
                                             cvdv.style_casenum(df[['New Positive','New Positive per 100k']]),
-                                            cvdv.styleprate_text(df['% New Positive']),
+                                            #cvdv.styleprate_text(df['% New Positive']),
                                             df['New Deaths'],
                                             df['New Vaccinated']
                                             ],                                            
                                   'align':'left',
                                   'fill_color':['whitesmoke',
-                                                'whitesmoke',
+                                                #'whitesmoke',
                                                 cvdv.stylecp100k_cell(df['New Positive per 100k']),                                                                                                
-                                                cvdv.styleprate_cell(df['% New Positive']),                                                
+                                                #cvdv.styleprate_cell(df['% New Positive']),                                                
                                                 'whitesmoke',
                                                 'whitesmoke'
                                                 ],
@@ -122,7 +122,7 @@ daily = go.Table(header={'values':['<b>Date</b>',
 fig = go.Figure(data=daily)
 fig.update_layout(title="Daily Case Reports",
                   margin = margs,
-                  height= (ndays*60)
+                  height= (ndays*40)
                   )
 weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
 
@@ -138,15 +138,15 @@ fig.add_trace(go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg New Positiv
     secondary_y=False,
 )
 
-fig.add_trace(
-    go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg % New Positive'],
-               name="Positivity (7 day avg)"),
-    secondary_y=True,
-)
+#fig.add_trace(
+#    go.Scatter(x=threeweeks.index, y=threeweeks['7 Day Avg % New Positive'],
+#               name="Positivity (7 day avg)"),
+#    secondary_y=True,
+#)
 
 # Add figure title
 fig.update_layout(
-    title_text="New Cases and Positivity: 7 Day Rolling Averages",
+    title_text="New Cases - 7 Day Rolling Averages",
     margin = margs,
     legend=dict(
         yanchor="top",
@@ -160,15 +160,15 @@ fig.update_layout(
 fig.update_xaxes(title_text="Date")
 
 ly_max = threeweeks['7 Day Avg New Positive'].max()
-ry_max = threeweeks['7 Day Avg % New Positive'].max()
+#ry_max = threeweeks['7 Day Avg % New Positive'].max()
 # Set y-axes titles
 fig.update_yaxes(title_text="<b>New Cases (7 day avg)</b>", 
                  range = (0,ly_max+5),
                  secondary_y=False)
-fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
-                 range = (0,.5),
-                 tickformat = ',.0%',
-                 secondary_y=True)
+#fig.update_yaxes(title_text="<b>Positivity (7 day avg)</b>", 
+#                 range = (0,.5),
+#                 tickformat = ',.0%',
+#                 secondary_y=True)
 fig.update_layout(hovermode='x unified')
 
 casetrends = plot(fig, include_plotlyjs=False, output_type='div')
@@ -242,8 +242,8 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Week Start Date</b>',
                                             '<b>New Cases</b>',
                                             '<b>Cases per 100k</b>',
-                                            '<b>New Tests</b>',
-                                            '<b>Positivity Rate</b>',
+                                            #'<b>New Tests</b>',
+                                            #'<b>Positivity Rate</b>',
                                             '<b>New Deaths</b>',
                                             '<b>New Full Vaccinations</b>'
                                             ],
@@ -254,8 +254,8 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                                               'Consecutive Case Increases',
                                                               'New Positive Change']]),
                                            cvdv.stylecp100k_text(df['New Positive per 100k']),
-                                           df['New Tests'],
-                                           cvdv.styleprate_text(df['% New Positive']),                                           
+                                           #df['New Tests'],
+                                           #cvdv.styleprate_text(df['% New Positive']),                                           
                                            df['New Deaths'],
                                            df['New Vaccinated']
                                            ],
@@ -264,8 +264,8 @@ weekly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                      ['whitesmoke',
                                       cvdv.stylecase_cell(df['Consecutive Case Increases']),
                                       cvdv.stylecp100k_cell(df['New Positive per 100k']),
-                                      'whitesmoke',
-                                      cvdv.styleprate_cell(df['% New Positive']),
+                                      #'whitesmoke',
+                                      #cvdv.styleprate_cell(df['% New Positive']),
                                       'whitesmoke',
                                       'whitesmoke'
                                       ]
@@ -285,16 +285,16 @@ df = threemonths.reset_index().sort_values('date',ascending=False)
 cell_vals = [df['date'].apply(lambda d: d.strftime("%B")),
              df['New Positive'],
              df['New Positive per 100k'].apply(lambda c:'{:.1f}'.format(c)),
-             df['New Tests'],
-             cvdv.styleprate_text(df['% New Positive']),                         
+             #df['New Tests'],
+             #cvdv.styleprate_text(df['% New Positive']),                         
              df['New Deaths'],
              df['New Vaccinated']]
 monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                           header={'values':['<b>Month</b>',
                                             '<b>New Cases</b>',
                                             '<b>Cases per 100k</b>',
-                                            '<b>New Tests</b>',
-                                            '<b>Positivity Rate</b>',
+                                            #'<b>New Tests</b>',
+                                            #'<b>Positivity Rate</b>',
                                             '<b>New Deaths</b>',
                                             '<b>New Full Vaccinations</b>'],
                                   'align':'left',
@@ -304,8 +304,8 @@ monthly_table = go.Table(#columnwidth = [10,10,10,10,10,10,10],
                                  'fill_color':['whitesmoke',
                                                'whitesmoke',                                            
                                                'whitesmoke',
-                                               'whitesmoke',
-                                               cvdv.styleprate_cell(df['% New Positive']),
+                                             #  'whitesmoke',
+                                             #  cvdv.styleprate_cell(df['% New Positive']),
                                                'whitesmoke',
                                                'whitesmoke']}
                           )
@@ -486,8 +486,13 @@ feb19note = """
 Presumably this is a retraction. The data for that day shows -1 
 cases. It would seem there were 0 new cases on 2/19 and one 
 fewer case in the days proceeding it. </small></p> """
+apr22note = """
+<p><small> On 4/22/22, the IDPH seemed to have stopped reporting the 
+number of tests. This resulted in a loss of that data as a whole and 
+makes postivity rate impossible to report. Starting on 4/25/22, both 
+the test count and the positivity rating will no longer be reported here.</small></p>""" 
 
-mdpage = header + idphnote + weekdiv + casetrends + pgraph +\
+mdpage = header + apr22note + idphnote + weekdiv + casetrends + pgraph +\
     pvac + pgraph +\
     dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv

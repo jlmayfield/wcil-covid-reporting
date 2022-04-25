@@ -196,19 +196,19 @@ all_the_weeks = schoolweekly(completeweeks,nweeks=1)
 
 df = all_the_weeks.reset_index().sort_values('date',ascending=False)
 vals = [df['date'].apply(lambda d: d.strftime("%B %d")),
-        styleprate_text(df['% New Positive']),
+        #styleprate_text(df['% New Positive']),
         stylecp100k_text(df[['Cases per 100k','New Positive']]),
         stylestreak_text(df['Consecutive Case Increases']),
         styleyouth_text(df[['Youth Cases','Consecutive Youth Increases']])]        
 # cell colors
 clrs = ['whitesmoke',
-        styleprate_cell(df['% New Positive']),
+       # styleprate_cell(df['% New Positive']),
         stylecp100k_cell(df['Cases per 100k']),
         stylestreak_cell(df['Consecutive Case Increases']),        
         styleyouth_cell(df[['Youth Cases','Consecutive Youth Increases']])]
 
 weekly_table = go.Table(header={'values':['<b>Week Start Date</b>',
-                                          '<b>Positivity Rate</b>',
+        #                                  '<b>Positivity Rate</b>',
                                           '<b>New Cases<br>per 100k (actual)</b>',                                                                                     
                                           '<b>Consecutive Weeks of<br>New Case Increases</b>',
                                           '<b>Youth Cases<br>Current (Increases)</b>',
@@ -256,9 +256,17 @@ permalink: /mr238/history/
 
 """
 
+apr22note = """
+<p><small> On 4/22/22, the IDPH seemed to have stopped reporting the 
+number of tests. This resulted in a loss of that data as a whole and 
+makes postivity rate impossible to report. Starting on 4/25/22, both 
+the test count and the positivity rating will no longer be reported here.</small></p>""" 
+
+
+
 timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
-header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
-mdpage = header + '\n\n\n' + div
+header = header + '<p><small>last updated:  ' + timestamp + '</small></p>\n\n'
+mdpage = header + apr22note + '\n\n\n' + div
 
 if today.dayofweek == 0:
     with open('docs/MR238History.md','w') as f:
