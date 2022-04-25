@@ -64,6 +64,8 @@ second_1k = '2021-08-29'
 day_one_3k = '2021-08-30'
 third_1k = '2021-12-31'
 day_one_4k = '2022-01-01'
+fourth_1k = '2022-04-10'
+day_one_5k = '2022-04-11'
 
 #%%
 
@@ -77,6 +79,7 @@ by_day = by_day[day_one:]
 firstk = by_day[day_one:first_1k]
 secondk = by_day[day_one_2k:second_1k]
 thirdk = by_day[day_one_3k:third_1k]
+fourthk = by_day[day_one_4k:fourth_1k]
 
 agedemos = demoexpand_daily(age)
 racedemos = demoexpand_daily(race)
@@ -86,7 +89,7 @@ racedemos = demoexpand_daily(race)
 
 # Time till ... Cases Analysis
 
-thresholds = pd.Index([1]+list(range(0,4000,1000))[1:]).rename('Threshold')
+thresholds = pd.Index([1]+list(range(0,5000,1000))[1:]).rename('Threshold')
 #%% 
 
 
@@ -146,7 +149,7 @@ with open('graphics/WCIL-TimeTo1000.txt','w') as f:
 firstmax = by_day.loc[day_one:first_1k]['New Positive'].max()
 secondmax = by_day.loc[day_one_2k:second_1k]['New Positive'].max()
 thirdmax = by_day.loc[day_one_3k:third_1k]['New Positive'].max()
-fourthmax = by_day.loc[day_one_4k:]['New Positive'].max()
+fourthmax = by_day.loc[day_one_4k:fourth_1k]['New Positive'].max()
 maxmax = by_day['New Positive'].max()
 minmin = by_day['New Positive'].min()
 
@@ -175,9 +178,10 @@ fig.add_vrect(x0=day_one_2k, x1=second_1k,y1=(secondmax-minmin)/totrange,
 fig.add_vrect(x0=day_one_3k, x1=third_1k,y1=(thirdmax-minmin)/totrange,
               annotation_text="Third 1000 Cases", annotation_position="top left",
               fillcolor="gray", opacity=0.2, line_width=0)
-fig.add_vrect(x0=day_one_4k, x1=third_1k,y1=(thirdmax-minmin)/totrange,
-              annotation_text="Third 1000 Cases", annotation_position="top left",
+fig.add_vrect(x0=day_one_4k, x1=fourth_1k,y1=(fourthmax-minmin)/totrange,
+              annotation_text="Fourth 1000 Cases", annotation_position="top left",
               fillcolor="gray", opacity=0.2, line_width=0)
+
 
 fig.update_layout(title_text='Daily New Positive COVID Tests <br> Warren County, IL',
                   height=600,width=1200,
@@ -202,36 +206,45 @@ cols = ['<20','20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+']
 demos_1k = agedemos.loc[day_one:first_1k]['New Positive'].groupby(by='age_group').sum().loc[cols]
 demos_2k = agedemos.loc[day_one_2k:second_1k]['New Positive'].groupby(by='age_group').sum().loc[cols]
 demos_3k = agedemos.loc[day_one_3k:third_1k]['New Positive'].groupby(by='age_group').sum().loc[cols]
+demos_4k = agedemos.loc[day_one_4k:fourth_1k]['New Positive'].groupby(by='age_group').sum().loc[cols]
 maxmax = max(demos_1k.max(),
              demos_2k.max(),
-             demos_3k.max())
+             demos_3k.max(),
+             demos_4k.max())
 
 clrs = px.colors.sequential.Blues
 
-fig = make_subplots(rows=1,cols=3,
+fig = make_subplots(rows=1,cols=4,
                     subplot_titles=(day_one + ' to ' + first_1k,
                                     day_one_2k + ' to ' + second_1k,
-                                    day_one_3k + ' to ' + third_1k),
+                                    day_one_3k + ' to ' + third_1k,
+                                    day_one_4k + ' to ' + fourth_1k),
                     shared_yaxes=True)
 
 fig.add_trace(go.Bar(name='First 1000',
                      x=cols,
                      y=demos_1k,
-                     marker_color=clrs[4],
+                     marker_color=clrs[2],
                      showlegend=False),
               row=1,col=1)
 fig.add_trace(go.Bar(name='Second 1000',
                      x=cols,
                      y=demos_2k,
-                     marker_color=clrs[6],
+                     marker_color=clrs[4],
                      showlegend=False),
               row=1,col=2)
 fig.add_trace(go.Bar(name='Third 1000',
                      x=cols,
                      y=demos_3k,
-                     marker_color=clrs[8],
+                     marker_color=clrs[6],
                      showlegend=False),
               row=1,col=3)
+fig.add_trace(go.Bar(name='Fourth 1000',
+                     x=cols,
+                     y=demos_4k,
+                     marker_color=clrs[8],
+                     showlegend=False),
+              row=1,col=4)
 
 fig.update_layout(title='Age Demographic Breakdown in ~1000 Case Increments',
                   margin = go.layout.Margin(l=0, #left margin
@@ -255,33 +268,41 @@ cols = ['Hispanic', 'Asian', 'Black', 'Other', 'White', 'NH/PI*', 'AI/AN**',
 demos_1k = racedemos.loc[day_one:first_1k]['New Positive'].groupby(by='race_group').sum().loc[cols]
 demos_2k = racedemos.loc[day_one_2k:second_1k]['New Positive'].groupby(by='race_group').sum().loc[cols]
 demos_3k = racedemos.loc[day_one_3k:third_1k]['New Positive'].groupby(by='race_group').sum().loc[cols]
+demos_4k = racedemos.loc[day_one_4k:fourth_1k]['New Positive'].groupby(by='race_group').sum().loc[cols]
 maxmax = max(demos_1k.max(),
              demos_2k.max(),
-             demos_3k.max())
+             demos_3k.max(),
+             demos_4k.max())
 
 clrs = px.colors.sequential.Blues
 
-fig = make_subplots(rows=1,cols=3,
+fig = make_subplots(rows=1,cols=4,
                     subplot_titles=(day_one + ' to ' + first_1k,
                                     day_one_2k + ' to ' + second_1k,
-                                    day_one_3k + ' to ' + third_1k),
+                                    day_one_3k + ' to ' + third_1k,
+                                    day_one_4k + ' to ' + fourth_1k),
                     shared_yaxes=True)
 
 fig.add_trace(go.Bar(x=cols,
                      y=demos_1k,
-                     marker_color=clrs[4],
+                     marker_color=clrs[2],
                      showlegend=False),
               row=1,col=1)
 fig.add_trace(go.Bar(x=cols,
                      y=demos_2k,
-                     marker_color=clrs[6],
+                     marker_color=clrs[4],
                      showlegend=False),
               row=1,col=2)
 fig.add_trace(go.Bar(x=cols,
                      y=demos_3k,
-                     marker_color=clrs[8],
+                     marker_color=clrs[6],
                      showlegend=False),
               row=1,col=3)
+fig.add_trace(go.Bar(x=cols,
+                     y=demos_4k,
+                     marker_color=clrs[8],
+                     showlegend=False),
+              row=1,col=4)
 
 fig.update_layout(title='Race Demographic Breakdown in ~1000 Case Increments',
                   margin = go.layout.Margin(l=0, #left margin
