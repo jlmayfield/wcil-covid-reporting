@@ -122,9 +122,46 @@ daily = go.Table(header={'values':['<b>Date</b>',
 fig = go.Figure(data=daily)
 fig.update_layout(title="Daily Case Reports",
                   margin = margs,
-                  height= (ndays*40)
+                  height= (ndays*35)
                   )
 weekdiv = plot(fig, include_plotlyjs=False, output_type='div')
+
+#%%
+def demoexpand_daily(tots):
+    demo_name = tots.index.names[1]
+    news = tots.groupby(level=demo_name).diff().fillna(0)
+    news.columns = ['New Positive','New Tests','New Deaths']
+    
+    return pd.concat([tots,news],axis=1)
+
+
+idph_age_cats = ['<20','20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+']
+age,race,gender = cvdp.loadidphdemos('Warren')
+agedemos = demoexpand_daily(age)
+agedemos = agedemos.loc[(slice(None),idph_age_cats),:].sort_index()
+agewindow = agedemos['New Positive'].unstack().loc[tenago:].astype(int)
+agewindow['Total'] = agewindow.sum(axis=1)
+# Case Demos 
+catheads = ['<b>{}</b>'.format(s) for s in idph_age_cats]
+
+df = agewindow.reset_index().sort_values('date',ascending=False)
+daily = go.Table(header={'values':['<b>Date</b>'] + catheads +['<b>Total</b>'],
+                                  'align':'left',
+                                  'fill_color':'gainsboro'},
+                           cells={'values':[df['date'].apply(lambda d: d.strftime("%A, %B %d"))]+\
+                                  [df[a] for a in idph_age_cats]+[df['Total']],
+                                  'align':'left',
+                                  'fill_color':'whitesmoke',
+                                  })
+
+fig = go.Figure(data=daily)
+fig.update_layout(title="Daily Cases By IDPH Age Demographic Groups",
+                  margin = margs,
+                  height= (ndays*40)
+                  )
+agediv = plot(fig, include_plotlyjs=False, output_type='div')
+#plot(fig)
+
 
 #%%
 
@@ -492,7 +529,7 @@ number of tests. This resulted in a loss of that data as a whole and
 makes postivity rate impossible to report. Starting on 4/25/22, both 
 the test count and the positivity rating will no longer be reported here.</small></p>""" 
 
-mdpage = header + apr22note + idphnote + weekdiv + casetrends + pgraph +\
+mdpage = header + apr22note + idphnote + weekdiv + agediv + casetrends + pgraph +\
     pvac + pgraph +\
     dailyhistodiv + pgraph + dailyboxdiv + pgraph +\
     weeklydiv + monthlydiv

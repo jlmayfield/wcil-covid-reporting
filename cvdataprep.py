@@ -383,7 +383,7 @@ class IDPHDataCollector:
         if demo.ok:
             demo = demo.json()
         else:
-            return pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([])
+            return pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([]),pd.DataFrame([])        
         # extract date for report. should be equiv to day...
         date = pd.to_datetime("{}-{}-{}".format(demo['lastUpdatedDate']['year'],
                                                 demo['lastUpdatedDate']['month'],
@@ -561,8 +561,8 @@ class IDPHDataCollector:
         gendercurr = pd.read_csv('IDPH_GENDERDEMO_'+county.upper()+'.csv',
                               index_col=[0,1])
         nextday_file = pd.to_datetime(agecurr.index.get_level_values('date')[-1])+pd.Timedelta(1,unit='D')
-        today = pd.to_datetime(pd.to_datetime('today').date())
-        if today - nextday_file > pd.Timedelta(0,unit='D'):
+        today = pd.to_datetime(pd.to_datetime('today').date())        
+        if today - nextday_file >= pd.Timedelta(0,unit='D'):
             print('Updating with '+str(nextday_file.date())+' until '+\
                   str(today.date()))
             ctynew,agenew,racenew,gendernew = IDPHDataCollector.getDemoHistory(nextday_file,

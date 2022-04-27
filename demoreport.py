@@ -335,13 +335,14 @@ def normed_age_multiples(normed,src,col):
     # current col max
     catmax = int(curr_totals.max().max())
     # historical weekly cummulative max
-    histcummmax = curr_totals.groupby(level='date').sum().max()
+    histcummmax = normed[col].groupby(level='date').sum().max()
     # historical weekly cat max
-    histcatmax = curr_totals.groupby(level='date').max().max()    
+    histcatmax = normed[col].groupby(level='date').max().max()    
     # cleaner tick vales and padding
     def tick_foo(n):
         digits = len(str(n))    
         foo = int('5'+('0'*(digits-2)))
+        foo = max(1,foo * round(n/foo))   
         return foo * round(n/foo)                  
     tick_skip_smalls = tick_foo(catmax // 5)    
     tick_pad_smalls = tick_skip_smalls // 2
@@ -427,6 +428,116 @@ def normed_age_multiples(normed,src,col):
     return fig
 #%%
 
+def bar_age_multiples(df,src,col):
+    demo_groups = df.index.get_level_values('age_group').unique()
+    dates =  df.index.get_level_values('date').unique()
+    last_date = dates[-1]
+    
+    # demographic category -> color
+    clrs = px.colors.sequential.algae
+    if len(demo_groups) <= len(clrs) // 2:
+        cmap = {demo_groups[i]:clrs[2*i+1] for i in range(len(demo_groups))}
+    else:
+        cmap = {demo_groups[i]:clrs[i] for i in range(len(demo_groups))}
+    # Most recent values
+    curr = df.loc[(last_date,slice(None),src)][col]
+    # Order by most recent values
+    max_order = curr.sort_values(ascending=False).index.get_level_values('age_group')
+    # current col sum
+    curtot = int(curr.sum())
+    # current col max
+    catmax = int(curr.max())
+    # historical weekly cummulative max
+    histcummmax = df[col].groupby(level='date').sum().max()
+    # historical weekly cat max
+    histcatmax = df[col].groupby(level='date').max().max()    
+    # cleaner tick vales and padding
+    def tick_foo(n):
+        digits = len(str(n))    
+        foo = int('5'+('0'*(digits-2)))
+        foo = max(1,foo * round(n/foo))   
+        return foo * round(n/foo)                  
+    tick_skip_smalls = tick_foo(histcatmax // 5)    
+    tick_pad_smalls = tick_skip_smalls // 2
+    tick_skip_big = tick_foo(histcummmax // 8)
+    tick_pad_big = tick_skip_big // 4
+    nrows = ceil(len(demo_groups) / 3) + 2
+    specs = [[{},{},{}]]*floor(len(demo_groups)/3)
+    if len(demo_groups)%3 > 0:
+        specs = specs + [[{}]*(len(demo_groups)%3) +\
+                         [None]*(3-len(demo_groups)%3)]
+    specs = specs + [[{'colspan':3,'rowspan':2},None,None], [None,None,None]]
+    fig = make_subplots(rows=nrows,cols=3,
+                        #shared_yaxes=True,
+                        #shared_xaxes=True,
+                        specs = specs,
+                        subplot_titles=list(max_order)+['All Demographics']
+                        )
+    for i in range(len(max_order)):
+        cat = max_order[i]
+        clr = cmap[cat]
+        r = int(i/3)+1
+        c = int(i%3)+1
+        ys = df.loc[(dates,cat,src),col]
+        fig.add_trace(go.Bar(x=dates,
+                             y=ys,
+                             name=cat,
+                             showlegend=False,                                                             
+                             marker_color=clr                             
+                            ),
+                      row = r,col=c)
+        #if c == 1:
+        # current category max and  current
+        tsigs = [int(ys.max()),ys[-1]]
+        tvals = cleanTicks(list(range(0,int(catmax)+tick_pad_smalls,tick_skip_smalls)),
+                           tsigs,
+                           tick_pad_smalls)
+        ttext = ticktext(tvals,tsigs,
+                         lambda v: "<b>{}</b>".format(v))
+        #else:
+        #    tsigs = [int(ys.max())]
+        #    tvals = cleanTicks([],tsigs,tick_pad_smalls)
+        #    ttext = ticktext(tvals,tsigs,
+        #                     lambda v: "<b>{}</b>".format(v))        
+        fig.update_yaxes(tickmode='array',
+                         tickvals=tvals,
+                         ticktext=ttext,
+                         showgrid = False,
+                         row=r,col=c)  
+        fig.update_xaxes(showgrid=False,row=r,col=c)
+    fig.update_layout(barmode='stack')
+    cats = max_order
+    for i in range(0,len(cats)):
+        fig.add_trace(go.Bar(x=dates,
+                             y=df.loc[(dates,cats[i],src),col],                                 
+                             name=cats[i],
+                             marker_color=cmap[cats[i]]                                                     
+                             ),
+                      row=nrows-1,col=1)
+        tsigs = [curtot,histcummmax]
+        tvals = cleanTicks(range(0,int(curtot) + tick_pad_big,tick_skip_big),
+                           tsigs,
+                           tick_pad_big)
+        ttext = ticktext(tvals,tsigs,
+                             lambda v: "<b>{}</b>".format(v))   
+        fig.update_yaxes(showgrid=False,
+                         tickmode='array',
+                         tickvals=tvals,
+                         ticktext=ttext,
+                         row=nrows-1,col=1)    
+        fig.update_xaxes(showgrid=False,row=nrows-1,col=1)
+    
+    fig.update_yaxes(range=(0,histcatmax+tick_pad_smalls))
+    fig.update_yaxes(range=(0,histcummmax + tick_pad_big),row=nrows-1)
+    fig.update_layout(title=col + " COVID-19 Cases by Age Demographic Groups (" + src + ")",
+                      width= 1200,
+                      height= 800,
+                      margin=margs,
+                      plot_bgcolor='floralwhite')
+    return fig
+
+#%%
+
 # IDPH Age Group Totals
 fig = normed_age_multiples(age_weekly,'IDPH','Total Positive')
 plot(fig,filename='graphics/idph_agedemototals_multiples.html')
@@ -436,7 +547,7 @@ with open('graphics/WCIL-IDPHAgeDemoTotals.txt','w') as f:
     f.close()
 
 # IDPH Age Group New  
-fig = normed_age_multiples(complete_weeks,'IDPH','New Positive')
+fig = bar_age_multiples(complete_weeks,'IDPH','New Positive')
 plot(fig,filename='graphics/idph_agedemonew_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
 with open('graphics/WCIL-IDPHAgeDemoNew.txt','w') as f:
