@@ -699,8 +699,8 @@ pgraph = '<p></p>'
 mdpage = ""
 header = """---
 layout: page
-title: Warren County - Historical
-permalink: /wcil-history-report/
+title: Warren County Health Department Reports
+permalink: /wcil-wchd-history-report/
 ---
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 """
@@ -712,7 +712,7 @@ header = header + """
 issued their last weekly covid report. This report covered data up through 
 and including April 2, 2022.  This page pulled data from the weekly WCHD 
 reports and, at this time, is no longer updated.
-</large><p>
+</large></p>
 """
 
 front = """
