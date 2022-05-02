@@ -46,95 +46,48 @@ margs = go.layout.Margin(l=0, #left margin
 warren = [17187]
 p = 17032
 
-#population,cases,deaths = cvdp.loadusafacts()
-reports_wchd,demo_wchd,death_wchd = cvdp.loadwchd()
-#reports_mc = cvdp.loadmcreports()
 
+idphnums = cvdp.loadidphdaily()
+idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums)).loc[:,17,17187]
 
-#reports_mc = cvda.expandMCData(reports_mc)
 
 #%%
 
 
-def daily(basis,demo):
-    #basis = basis.loc[:,17,17187]
-    demo_sum = pd.DataFrame(index=basis.index)
-    demo_sum['Age 0-10'] = (demo.T.loc[(slice(None),['0-10']),:].T).sum(axis=1).astype(int)
-    demo_sum['Age 10-20'] = (demo.T.loc[(slice(None),['10-20']),:].T).sum(axis=1).astype(int)
-    demo_sum['Age 20-40'] = (demo.T.loc[(slice(None),['20-40']),:].T).sum(axis=1).astype(int)
-    demo_sum['Age 40-60'] = (demo.T.loc[(slice(None),['40-60']),:].T).sum(axis=1).astype(int)
-    demo_sum['Age 60-80'] = (demo.T.loc[(slice(None),['60-80']),:].T).sum(axis=1).astype(int)
-    demo_sum['Age 80-100'] = (demo.T.loc[(slice(None),['80-100']),:].T).sum(axis=1).astype(int)
-    basis = pd.concat([basis,demo_sum],axis=1)
-    return basis
-    
-
 def weekly(daydata,nweeks=1):
-    basis = daydata[['New Tests','New Positive',
-                     'New Positive per 100k','New Deaths',
-                     'Age 0-10','Age 10-20','Age 20-40',
-                     'Age 40-60','Age 60-80', 'Age 80-100']]
+    basis = daydata[['New Positive','New Positive per 100k','New Deaths']]
     weeks = basis.groupby(pd.Grouper(level='date',
                                       freq=str(nweeks)+'W-SUN',
                                       closed='left',
                                       label='left')).sum()    
-    weeks['Week Number'] = weeks.index.isocalendar().week
-    weeks = pd.concat([weeks,
-                       cvda._newposrate(weeks)],
-                       axis=1)
-    return weeks[['Week Number','New Tests','New Positive','% New Positive',
-                  'New Positive per 100k','New Deaths',
-                  'Age 0-10','Age 10-20','Age 20-40','Age 40-60',
-                  'Age 60-80','Age 80-100']]
-
+    tots = weeks.cumsum().rename(columns={'New Positive':'Total Positive',
+                                          'New Positive per 100k':'Total Positive per 100k',
+                                          'New Deaths':'Total Deaths'})
+    return pd.concat([weeks,tots],axis=1)
 
 def monthly(daydata):
     months = daydata.groupby(pd.Grouper(level='date',
                                        freq='MS',
                                        closed='left',
-                                       label='left')).sum()    
-    months['Month Number'] = months.index.map(lambda d: d.month)
-    months = pd.concat([months,
-                        cvda._newposrate(months)],
-                        axis=1)
-    return months[['Month Number','New Tests','New Positive','% New Positive',
-                  'New Positive per 100k','New Deaths',
-                  'Age 0-10','Age 10-20','Age 20-40','Age 40-60',
-                  'Age 60-80','Age 80-100']]
+                                       label='left')).sum()  
+    tots = months.cumsum().rename(columns={'New Positive':'Total Positive',
+                                          'New Positive per 100k':'Total Positive per 100k',
+                                          'New Deaths':'Total Deaths'})
+    return pd.concat([months,tots],axis=1)
 
+    
 #%%
 
-full_tests_wchd = cvda.expandWCHDData(cvdp.prepwchd(reports_wchd))
-# current viz routines assume single date index and do not handle the s
-# index that includes state/county fips
-tests_wchd = full_tests_wchd.loc[:,17,17187]
+by_week = weekly(idph_daily)
+day1 = (idph_daily['Total Positive'] > 0).idxmax()
 
-by_day = daily(tests_wchd,demo_wchd)
-by_week = weekly(by_day)
-by_month = monthly(by_day)
+lastday = idph_daily.index[-1]
+currweekdays = lastday.isoweekday()+1
+if currweekdays < 7:
+    complete_weeks = by_week.iloc[:-1]
+else:
+    complete_weeks = by_week
 
-idphnums = cvdp.loadidphdaily()
-idph_daily = cvda.expandIDPHDaily(cvdp.prepidphdaily(idphnums))
-
-
-#%%
-
-wchd_last_sat = pd.to_datetime('2021-01-23')
-wchd_day = by_day.loc[:wchd_last_sat]
-idph_day = idph_daily.loc[(wchd_last_sat+pd.to_timedelta(1,unit='D')):].loc[:,17,17187]
-
-daily = pd.concat([wchd_day[['7 Day Avg New Positive',
-                             '7 Day Avg % New Positive']],
-                   idph_day[['7 Day Avg New Positive',
-                             '7 Day Avg % New Positive']]
-                   ])
-
-#%%
-
-totpos = by_week['New Positive'].cumsum().rename('Total Positive')
-totdet = by_week['New Deaths'].cumsum().rename('Total Deaths')
-
-by_week = pd.concat([by_week,totpos,totdet],axis=1)
 
 #%%
 
@@ -307,9 +260,9 @@ totsdeath = plot(fig,include_plotlyjs=False,output_type='div')
 #plot(fig,filename='graphics/totaldeaths.html')
 
 #%%
-day1 = wchd_day.index[0]
-pvacs = idph_daily.loc[:,17,17187]['% Vaccinated']
-nvacs = idph_daily.loc[:,17,17187]['New Vaccinated']
+
+pvacs = idph_daily['% Vaccinated']
+nvacs = idph_daily['New Vaccinated']
 vday1 = pvacs[ pvacs != 0 ].index[0]
 idx = pd.date_range(start = day1, end = pvacs.index[-1], freq='D')
 pvacs = pvacs.reindex(idx).fillna(0)
@@ -386,62 +339,55 @@ pvac = plot(fig,include_plotlyjs=False,output_type='div')
 
 #%%
 
-# clear daily numbers by each category
-demo_daily = demo_wchd.copy().reorder_levels([1,0],axis=1)
-demo_daily = demo_daily.reindex(sorted(demo_daily.columns),axis=1)
-demo_daily.columns = [i[1]+ ' ' + i[0] for i in demo_daily.columns]
-demo_daily.index.name = 'date'
+def demoexpand_daily(tots):
+    demo_name = tots.index.names[1]
+    news = tots.groupby(level=demo_name).diff().fillna(0)
+    news.columns = ['New Positive','New Tests','New Deaths']
+    
+    return pd.concat([tots,news],axis=1)
 
+def demo_weekly(dailies):
+    gbyweek = pd.Grouper(level='date',
+                         freq='W-SUN',
+                         closed='left',
+                         label='left')
+    demo_name = dailies.index.names[1]
+    news = dailies[['New Positive','New Tests']]
+    news = news.groupby([gbyweek,demo_name]).sum()
+    tots = dailies[['Total Positive', 'Total Tested']]
+    tots = tots.groupby([gbyweek,demo_name]).max().fillna(0)
+    return pd.concat([news,tots],axis=1)
+#%%
 
-# weekly totals
-demo_weeks = demo_daily.groupby(pd.Grouper(level='date',
-                                           freq='W-SUN',
-                                           closed='left',
-                                           label='left')).sum() 
-# cumulative totals
-demo_total = demo_weeks.cumsum()
+idph_age_cats = ['<20','20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+']
+age,race,gender = cvdp.loadidphdemos('Warren')
+agedemos = demoexpand_daily(age)
+agedemos = agedemos.loc[(slice(None),idph_age_cats),:].sort_index()
+age_weekly = demo_weekly(agedemos).astype(int)
+age_weekly = age_weekly.reset_index().set_index(['date','age_group']).sort_index()
 
-# same but for deaths rather than cases
-death_daily = death_wchd.copy().reorder_levels([1,0],axis=1)
-death_daily = death_daily.reindex(sorted(death_daily.columns),axis=1)
-death_daily.columns = [i[1]+ ' ' + i[0] for i in death_daily.columns]
-death_daily.index.name = 'date'
-death_daily = death_daily.reindex(demo_daily.index).fillna(0)
-
-death_weeks = death_daily.groupby(pd.Grouper(level='date',
-                                             freq='W-SUN',
-                                             closed='left',
-                                             label='left')).sum() 
-
-death_total = death_weeks.cumsum()
+#%%
 
 # demographic category -> color
 clrs = px.colors.sequential.algae
-cmap = {demo_daily.columns[i]:clrs[i] for i in range(len(demo_daily.columns))}
+cmap = {idph_age_cats[i]:clrs[i] for i in range(len(idph_age_cats))}
 
-# Demographic Groups that have recorded Deaths
-deathcats = death_total.iloc[-1]
-deathcats = (deathcats[ deathcats > 0 ]).index
-
-death_daily = death_daily[deathcats].astype(int)
-death_total = death_total[deathcats].astype(int)
-death_weeks = death_weeks[deathcats].astype(int)
 #%%
 
 # multiples: cumulative Cases 
 #  ticks: col1--> by 100 with current. col 2,3 --> current
+demo_total = age_weekly['Total Positive'].unstack()
 
 cumsum_order = demo_total.iloc[-1].sort_values(ascending=False).index
 curtot = demo_total.iloc[-1].sum()
-catmax = demo_total.max().max()
+catmax = demo_total.iloc[-1].max()
 
-fig = make_subplots(rows=6,cols=3,
+fig = make_subplots(rows=5,cols=3,
                     #shared_yaxes=True,
                     shared_xaxes=True,
                     specs = [[{},{},{}],
                              [{},{},{}],
-                             [{},{},{}],
-                             [{},{},{}],
+                             [{},{},{}],                             
                              [{'colspan':3,'rowspan':2},None,None],
                              [None,None,None]],
                     subplot_titles=list(cumsum_order)+['All Demographics']
@@ -462,9 +408,9 @@ for i in range(len(cumsum_order)):
                   row = r,col=c)
     if c == 1:
         tsigs = [int(demo_total[cat].max())]
-        tvals = cleanTicks(list(range(0,int(catmax)+10,100)),
+        tvals = cleanTicks(list(range(0,int(catmax)+10,150)),
                            tsigs,
-                           50)
+                           80)
         ttext = ticktext(tvals,tsigs,
                          lambda v: "<b>{}</b>".format(v))
     else:
@@ -488,9 +434,9 @@ for i in range(0,len(cats)):
                          fill='tonexty',
                          stackgroup='one'                         
                          ),
-                  row=5,col=1)
-    tsigs = [int(demo_daily.sum().sum())]
-    tvals = cleanTicks(range(0,int(demo_daily.sum().sum()) + 25,500),
+                  row=4,col=1)
+    tsigs = [int(curtot)]
+    tvals = cleanTicks(range(0,int(curtot) + 25,500),
                        tsigs,
                        250)
     ttext = ticktext(tvals,tsigs,
@@ -499,35 +445,38 @@ for i in range(0,len(cats)):
                      tickmode='array',
                      tickvals=tvals,
                      ticktext=ttext,
-                     row=5,col=1)    
-    fig.update_xaxes(showgrid=False,row=5,col=1)
+                     row=4,col=1)    
+    fig.update_xaxes(showgrid=False,row=4,col=1)
 
-fig.update_yaxes(range=(0,catmax+10))
-fig.update_yaxes(range=(0,demo_daily.sum().sum() + 25),row=5)
-fig.update_layout(title="Total COVID-19 Cases by Demographic Groups",
+fig.update_yaxes(range=(0,catmax+25))
+fig.update_yaxes(range=(0,curtot + 50),row=4)
+fig.update_layout(title="Total COVID-19 Cases by IDPH Demographic Groups",
                   width= 1200,
                   height= 800,
                   margin=margs,
                   plot_bgcolor='floralwhite')
 #plot(fig,filename='graphics/demototals_multiples.html')
 div_casetotal = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/WCIL-DemoTotals.txt','w') as f:
-    f.write(div_casetotal)
-    f.close()
+#with open('graphics/WCIL-DemoTotals.txt','w') as f:
+#    f.write(div_casetotal)
+#    f.close()
 
 
 #%%
+
+if currweekdays < 7:
+    lastfull = age_weekly.index.get_level_values('date').unique()[-2]
+    complete_weeks = age_weekly.loc[:lastfull,:]
 # multiples: weekly Cases 
-complete_weeks = demo_weeks
+complete_weeks = age_weekly['New Positive'].unstack()
 currweek_order = complete_weeks.iloc[-1].sort_values(ascending=False).index
 catmax = complete_weeks.max().max()
 tot=complete_weeks.sum(axis=1).max()
 
-fig = make_subplots(rows=6,cols=3,
+fig = make_subplots(rows=5,cols=3,
                     #shared_yaxes=True,
                     shared_xaxes=True,
                     specs = [[{},{},{}],
-                             [{},{},{}],
                              [{},{},{}],
                              [{},{},{}],
                              [{'colspan':3,'rowspan':2},None,None],
@@ -579,9 +528,9 @@ for i in range(0,len(cats)):
                          fill='tonexty',
                          #showlegend=False,
                          stackgroup='one'                             
-                         ),row=5,col=1)
+                         ),row=4,col=1)
     tsigs = cleanTicks([int(tot)],
-                       [int(demo_weeks.sum(axis=1)[-1])],
+                       [int(complete_weeks.sum(axis=1)[-1])],
                        10)
     tvals = cleanTicks(range(0,int(tot)+10,25),
                        tsigs,
@@ -593,25 +542,25 @@ for i in range(0,len(cats)):
                      tickvals=tvals,
                      ticktext=ttext,
                      row=5,col=1)    
-    fig.update_xaxes(showgrid=False,row=5,col=1)
+    fig.update_xaxes(showgrid=False,row=4,col=1)
 
 fig.update_yaxes(range=(0,catmax+5))
-fig.update_yaxes(range=(0,tot+10),row=5)
-fig.update_layout(title="Weekly COVID-19 Cases by Demographic Groups",
+fig.update_yaxes(range=(0,tot+10),row=4)
+fig.update_layout(title="Weekly COVID-19 Cases by IDPH Demographic Groups",
                   width=1200,height=800,margin=margs,
                   plot_bgcolor='floralwhite'
                   )
 #plot(fig,filename='graphics/demoweekl_multiples.html')
 div_caseweek = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/WCIL-DemoWeekly.txt','w') as f:
-    f.write(div_caseweek)
-    f.close()
+#with open('graphics/WCIL-DemoWeekly.txt','w') as f:
+#    f.write(div_caseweek)
+#    f.close()
 
 
 #%%
 
 # multiples : cumlative deaths
-
+"""
 cumsum_order = death_total.iloc[-1].sort_values(ascending=False).index
 curtot = death_total.iloc[-1].sum()
 catmax = death_total.max().max()
@@ -688,10 +637,10 @@ fig.update_layout(title="Total Deaths by Demographic Groups",
                   plot_bgcolor='floralwhite')
 #plot(fig,filename='graphics/demototals_deaths_multiples.html')
 div_deathtotal = plot(fig, include_plotlyjs=False, output_type='div')
-with open('graphics/WCIL-DemoDeathTotals.txt','w') as f:
-    f.write(div_deathtotal)
-    f.close()
-
+#with open('graphics/WCIL-DemoDeathTotals.txt','w') as f:
+#    f.write(div_deathtotal)
+#    f.close()
+"""
 
 #%%
 
@@ -699,28 +648,19 @@ pgraph = '<p></p>'
 mdpage = ""
 header = """---
 layout: page
-title: Warren County Health Department Reports
-permalink: /wcil-wchd-history-report/
+title: Warren County Illinois - History Report
+permalink: /wcil-history-report/
 ---
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 """
-#timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
-#header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
-
-header = header + """
-<p><large> On April 4, 2022, the Warren County Health Department 
-issued their last weekly covid report. This report covered data up through 
-and including April 2, 2022.  This page pulled data from the weekly WCHD 
-reports and, at this time, is no longer updated.
-</large></p>
-"""
+timestamp = pd.to_datetime('today').strftime('%H:%M %Y-%m-%d')
+header = header + '<p><small>last updated:  ' + timestamp + '</small><p>\n\n'
 
 front = """
-<small><p> Case data for this page comes from reports issued by the 
-Warren County Health Department. Vaccine data comes from the Illinois 
-Department of Public Health. </p>
+<small><p> Data for this page comes from reports issued by the 
+Illinois Department of Public Health (IDPH) </p>
 <p>
-All the graphics report data on weekly increments. In the first three 
+All the graphics report the data on weekly increments. In the first three 
 graphics the bars are weekly nubmers and the area graph shows a cummulative total.
 For these charts, numbers listed in bold are either maximums 
 or values reported on the day of the other y-axis's maximum. For example, 
@@ -734,7 +674,7 @@ current value and a historically notable value for the second y-axis.
 
 mdpage = header + front + pgraph + tots + pgraph + totsdeath + pgraph +\
     pvac + pgraph +\
-    div_casetotal + pgraph + div_caseweek + pgraph + div_deathtotal
+    div_casetotal + pgraph + div_caseweek 
 
 with open('docs/wcilHistory.md','w') as f:
     f.write(mdpage)
